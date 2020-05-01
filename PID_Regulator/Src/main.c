@@ -23,9 +23,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
 #include "stm32f1xx_hal.h"
-#include <bigFont_lcdI2c.h>
 #include <lcd_Hd44780I2C.h>
+#include <bigFont_lcdI2c.h>
+
 #include <uartPrint.h>
 /* USER CODE END Includes */
 
@@ -39,22 +41,25 @@
 #define LCD_ROWS		(4U)
 #define LCD_COLS		(20U)
 #define LCD_I2C_ADDRESS	(0x4E)
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
+/* Exported functions ------------------------------------------------------- */
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
-DMA_HandleTypeDef hdma_i2c1_rx;
-DMA_HandleTypeDef hdma_i2c1_tx;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart1;
+USART_HandleTypeDef husart2;
+DMA_HandleTypeDef hdma_usart1_tx;
+DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 
@@ -75,8 +80,8 @@ static const LCD_cfg_t Lcd_Hd44780I2cCfg =
 static uint32_t i2c_TxInterrupts = 0;
 static uint32_t i2c_RxInterrupts = 0;
 static uint32_t Uart_TxInterrupts = 0;
-static uint32_t Uart_RxInterrupts = 0;
-uint8_t array[10]={100,25,39,47,95,16,78,8,98,109};
+
+char Rx_indx,Rx_data[2],Rx_Buffer[100],Transfer_cplt;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,9 +89,10 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
-static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_DMA_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_USART2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -95,32 +101,22 @@ static void MX_DMA_Init(void);
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	static uint8_t var;
-	if (htim->Instance==TIM3) //check if the interrupt comes from TIM3
+	if (htim->Instance == TIM3) //check if the interrupt comes from TIM3
 	{
 		//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		encoderPos=(encoderPos+1)%20;
-		if(encoderPos==0)
-		{
-			LCD_setBacklight(&Lcd_2,1u);/* Turn on the Backlight */
-		}
-		else if(encoderPos == 10)
-		{
-			LCD_setBacklight(&Lcd_2,0u);/* Turn off the Backlight */
-		}
-		else
-		{
-			//Nothing to do
-		}
+		encoderPos=(encoderPos+1)%60;
+		UART_print(&huart1,"\r\nNumero: %d", encoderPos);
 	}
 }
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-	if (htim->Instance==TIM2) //check if the interrupt comes from TIM3
+	if (htim->Instance==TIM2) //check if the interrupt comes from TIM2
 	{
 		if(HAL_TIM_Encoder_GetState(&htim2) == HAL_TIM_STATE_READY)
 		{
-			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			UART_print(&huart1,"\r\nEncoder: %d", TIM2->CNT);
+			LCD_setCursor(&Lcd_2,17,0);
+			LCD_print(&Lcd_2,"%d",encoderPos);
 			BIGFONT_printNumber(&Lcd_2,TIM2->CNT, 0 ,0);
 		}
 	}
@@ -144,7 +140,7 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance == USART2)
+	if(huart->Instance == USART1)
 	{
 		Uart_TxInterrupts++;
 	}
@@ -152,32 +148,47 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance == USART2)
+	uint8_t i;
+	if(huart->Instance == USART1)//Current UART
 	{
-		Uart_RxInterrupts++;
+		if(Rx_indx ==0)
+		{
+			for(i=0; i<100; i++)
+			{
+				Rx_Buffer[i]=0; //Clear rx_Buffer prior to use
+			}
+			//reset the user led if previously set
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+		}
+		if(Rx_data[0]!=13)
+		{
+			Rx_Buffer[Rx_indx++] = Rx_data[0]; //add data to rxbuffer
+		}
+		else // if received data =13 (carriage return)
+		{
+			Rx_indx =0;
+			Transfer_cplt =1; // transfer complete, data is ready
+			HAL_UART_Transmit_DMA(&huart1,(uint8_t*)Rx_Buffer,(uint16_t)strlen(Rx_Buffer));
+			HAL_UART_Transmit_DMA(&huart1,(uint8_t*)"\n\r",2u);
+			if(!strcmp(Rx_Buffer,"On"))// LED trigger phase
+			{
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+			}
+		}
+		HAL_UART_Receive_DMA(&huart1,(uint8_t*)Rx_data,1u);// activate UART
+		HAL_UART_Transmit_DMA(&huart1,(uint8_t*)Rx_data,(uint16_t)strlen(Rx_data));
 	}
 }
 
-/*
- * @brief Enable encoder mode on TIM4
- * Encoder needs to be connected on PB5 and PB6
- * */
-//void init_hardware_timer_version(void)
-//{
-// RCC->APB2ENR |= RCC_APB2ENR_AFIOEN | RCC_APB2ENR_IOPBEN;
-// RCC->APB1ENR |= RCC_APB1ENR_TIM4EN; //AFIO might not even be needed?
-//
-// //GPIO must be input floating which is default so no code to write for that
-//
-// // value to count up to : 16 bit so max is 0xFFFF = 65535
-// TIM4->ARR = 0xFFFF;
-//
-// //per datasheet instructions
-// TIM4->CCMR1 |= (TIM_CCMR1_CC1S_0 | TIM_CCMR1_CC2S_0 );  //step 1 and 2
-// TIM4->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P);  // step 3 and 4
-// TIM4->SMCR |= TIM_SMCR_SMS_0 | TIM_SMCR_SMS_1;   //step 5
-// TIM4->CR1 |= TIM_CR1_CEN ;     //step 6
-//}
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	  if (GPIO_Pin == GPIO_PIN_4)
+	  {
+	    /* Toggle LED3 */
+		  encoderPos += 5;
+	    //BSP_LED_Toggle(LED3);
+	  }
+}
 
 /* USER CODE END 0 */
 
@@ -212,16 +223,18 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
-  MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_DMA_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_Init();
   /* USER CODE BEGIN 2 */
-
-  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_UART_Receive_DMA(&huart1,Rx_data,1u);
   LCD_init(&Lcd_2, &Lcd_Hd44780I2cCfg); /* Initialize the LCD to print "normal characters"*/
   BIGFONT_init(&Lcd_2); /*Initialize Big font characters */
-  HAL_UART_Transmit_IT(&huart2, array, 10);
   LCD_setBacklight(&Lcd_2, 1u); /* Turn on the Backlight */
+  UART_print(&huart1,"\r\nHello World!");
+  HAL_TIM_Base_Start_IT(&htim3);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -249,7 +262,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -258,12 +273,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -373,9 +388,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 8000;
+  htim3.Init.Prescaler = 6400;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 499;
+  htim3.Init.Period = 4999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -400,11 +415,44 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+  //__HAL_UART_ENABLE_IT(&huart1,UART_IT_RXNE);
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
+static void MX_USART2_Init(void)
 {
 
   /* USER CODE BEGIN USART2_Init 0 */
@@ -414,15 +462,16 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 1 */
 
   /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  husart2.Instance = USART2;
+  husart2.Init.BaudRate = 115200;
+  husart2.Init.WordLength = USART_WORDLENGTH_8B;
+  husart2.Init.StopBits = USART_STOPBITS_1;
+  husart2.Init.Parity = USART_PARITY_NONE;
+  husart2.Init.Mode = USART_MODE_TX_RX;
+  husart2.Init.CLKPolarity = USART_POLARITY_LOW;
+  husart2.Init.CLKPhase = USART_PHASE_1EDGE;
+  husart2.Init.CLKLastBit = USART_LASTBIT_DISABLE;
+  if (HAL_USART_Init(&husart2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -442,12 +491,12 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Channel6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 8, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
-  /* DMA1_Channel7_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 8, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
+  /* DMA1_Channel4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 4, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 
 }
 
@@ -474,6 +523,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
 }
 

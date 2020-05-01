@@ -13,6 +13,7 @@
 "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.o"
 "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.o"
 "Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.o"
+"Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_usart.o"
 "Src/bigFont_lcdI2c.o"
 "Src/lcd_Hd44780I2C.o"
 "Src/main.o"
