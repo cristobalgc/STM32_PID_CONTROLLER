@@ -66,6 +66,8 @@ static const char * const pbf_ch_item[] = {pbf_lcd_ch0, pbf_lcd_ch1, pbf_lcd_ch2
 /* Todo complete the Symbols and updata the documantation */
 static const uint8_t font_35_sym1[]={ 7,0,0,1,0,0, 7,7,0,0,0,0, 2,6,0,0,3,0, 4,6,0,0,3,6, 9,6,4,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0};
 
+static const uint8_t font_35_sym2[]={ 0,1,0,0,4,0, 7,7,0,0,0,0, 2,6,0,0,3,0, 4,6,0,0,3,6, 9,6,4,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0};
+
 static const uint8_t font_35_09[]={1,2,3,7,1,6, 1,3,0,0,7,0, 2,2,3,7,5,5, 2,2,3,5,5,7, 3,0,3,4,4,7, 3,2,2,5,5,7, 3,2,2,7,5,7, 2,2,3,0,0,7, 3,2,3,7,5,7, 3,2,3,5,5,7};
 
 static const uint8_t font_35_AZ[]={3,2,3,7,4,7, 3,2,3,7,5,3, 3,2,2,7,1,1, 3,2,1,7,1,6, 3,2,2,7,5,5, 3,2,2,7,4,4, 3,2,2,7,1,7, 3,0,3,7,4,7, 2,3,2,1,7,1, 2,2,3,3,1,7, 3,0,3,7,4,5, 3,0,0,7,1,1, 3,1,3,7,4,7, 3,2,3,7,0,7, 3,2,3,7,1,7, 3,2,3,7,4,4, 3,2,3,4,4,7, 3,2,3,7,4,3, 3,2,2,5,5,7, 2,3,2,0,7,0, 3,0,3,7,1,7, 3,0,3,6,1,6, 3,0,3,7,6,7, 3,0,3,3,4,3, 3,0,3,4,7,4, 2,2,3,3,5,1};
@@ -119,6 +121,12 @@ static void bigfont_printTopChar(LCD_t *lcd, char ch)
     if (!lcd->Data._invertBigFont) LCD_write(lcd,font_35_sym1[(ch-'!')*6+i]);
     else LCD_write(lcd,7-font_35_sym1[(ch-'!')*6+i]);
   }
+  else if ((ch>=':')&&(ch<='@'))
+  {
+    for (uint8_t i=0; i<3; i++)
+    if (!lcd->Data._invertBigFont) LCD_write(lcd,font_35_sym2[(ch-':')*6+i]);
+    else LCD_write(lcd,7-font_35_sym2[(ch-':')*6+i]);
+  }
   if (!lcd->Data._invertBigFont) LCD_write(lcd,' ');
   else LCD_write(lcd,255);
 }
@@ -148,12 +156,18 @@ static void bigfont_printBotChar(LCD_t *lcd, char ch)
 			if (!lcd->Data._invertBigFont) LCD_write(lcd,font_35_az[(ch-'a')*6+i+3]);
 			else LCD_write(lcd,7-font_35_az[(ch-'a')*6+i+3]);
 	}
-	  else if ((ch>='!')&&(ch<='/'))
-	  {
-	    for (uint8_t i=0; i<3; i++)
-	    if (!lcd->Data._invertBigFont) LCD_write(lcd,font_35_sym1[(ch-'!')*6+i+3]);
-	    else LCD_write(lcd,7-font_35_sym1[(ch-'!')*6+i+3]);
-	  }
+	else if ((ch>='!')&&(ch<='/'))
+	{
+		for (uint8_t i=0; i<3; i++)
+			if (!lcd->Data._invertBigFont) LCD_write(lcd,font_35_sym1[(ch-'!')*6+i+3]);
+			else LCD_write(lcd,7-font_35_sym1[(ch-'!')*6+i+3]);
+	}
+	else if ((ch>=':')&&(ch<='@'))
+	{
+		for (uint8_t i=0; i<3; i++)
+			if (!lcd->Data._invertBigFont) LCD_write(lcd,font_35_sym2[(ch-':')*6+i+3]);
+			else LCD_write(lcd,7-font_35_sym2[(ch-':')*6+i+3]);
+	}
 	if (!lcd->Data._invertBigFont) LCD_write(lcd,' ');
 	else LCD_write(lcd,255);
 }
@@ -240,7 +254,8 @@ void BIGFONT_invertBackground(LCD_t *lcd, uint8_t inv)
  * */
 void BIGFONT_init(LCD_t *lcd)
 {
-	for (int i=0;i<8;i++)
+	uint8_t i;
+	for (i=0;i<8;i++)
 	{
 		LCD_createChar(lcd, i, pbf_ch_item[i]);
 	}

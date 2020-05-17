@@ -4,9 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Src/DS1302.c \
 ../Src/bigFont_lcdI2c.c \
+../Src/delay.c \
 ../Src/lcd_Hd44780I2C.c \
 ../Src/main.c \
+../Src/pid.c \
+../Src/rtcm.c \
 ../Src/stm32f1xx_hal_msp.c \
 ../Src/stm32f1xx_it.c \
 ../Src/syscalls.c \
@@ -14,9 +18,13 @@ C_SRCS += \
 ../Src/uartPrint.c 
 
 OBJS += \
+./Src/DS1302.o \
 ./Src/bigFont_lcdI2c.o \
+./Src/delay.o \
 ./Src/lcd_Hd44780I2C.o \
 ./Src/main.o \
+./Src/pid.o \
+./Src/rtcm.o \
 ./Src/stm32f1xx_hal_msp.o \
 ./Src/stm32f1xx_it.o \
 ./Src/syscalls.o \
@@ -24,9 +32,13 @@ OBJS += \
 ./Src/uartPrint.o 
 
 C_DEPS += \
+./Src/DS1302.d \
 ./Src/bigFont_lcdI2c.d \
+./Src/delay.d \
 ./Src/lcd_Hd44780I2C.d \
 ./Src/main.d \
+./Src/pid.d \
+./Src/rtcm.d \
 ./Src/stm32f1xx_hal_msp.d \
 ./Src/stm32f1xx_it.d \
 ./Src/syscalls.d \

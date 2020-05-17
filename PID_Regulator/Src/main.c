@@ -27,6 +27,8 @@
 #include "stm32f1xx_hal.h"
 #include <lcd_Hd44780I2C.h>
 #include <bigFont_lcdI2c.h>
+#include <rtcm.h>
+#include <pid.h>
 
 #include <uartPrint.h>
 /* USER CODE END Includes */
@@ -38,9 +40,18 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 #define LCD_ROWS		(4U)
 #define LCD_COLS		(20U)
 #define LCD_I2C_ADDRESS	(0x4E)
+
+#define SAMPLING_TIME (4u)
+#define KI (1)
+#define KD (1)
+#define KP (7u)
+#define AD_RES (5000000/4096)
+#define INITDUTYVAL (500u)
+#define SET_POINT_INIT_VAL (4217u)
 
 /* USER CODE END PD */
 
@@ -53,11 +64,12 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+RTC_HandleTypeDef hrtc;
+
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart1;
-USART_HandleTypeDef husart2;
 DMA_HandleTypeDef hdma_usart1_tx;
 DMA_HandleTypeDef hdma_usart1_rx;
 
@@ -67,6 +79,21 @@ DMA_HandleTypeDef hdma_usart1_rx;
 static uint32_t encoderPos = 0;
 /* Lcd object */
 static LCD_t Lcd_2;
+/* RTC object */
+static rtc_t Rtc;
+/* PID object */
+static pidc_t Pid;
+
+/*Pid configuration */
+static const pid_cfg_t pidcfg = {
+		KP,
+		KI,
+		KD,
+		AD_RES,
+		SAMPLING_TIME,
+		INITDUTYVAL,
+		SET_POINT_INIT_VAL
+};
 /*Lcd configuration */
 static const LCD_cfg_t Lcd_Hd44780I2cCfg =
 {
@@ -77,11 +104,20 @@ static const LCD_cfg_t Lcd_Hd44780I2cCfg =
 	LCD_5x8DOTS /* Pending to remove, here you can set 0*/
 };
 
+/*RTC configuration */
+static rct_cfg_t rtc_config =
+{
+		{RTC_WEEKDAY_SATURDAY,RTC_MONTH_MAY,0x16,0x20},/* Date Configuration */
+		{0x23, 0x59, 0x50},/* Time Configuration */
+		{{0x0F, 0x00, 0x08}, RTC_ALARM_A} /* Alarm parameters*/
+};
+
 static uint32_t i2c_TxInterrupts = 0;
 static uint32_t i2c_RxInterrupts = 0;
 static uint32_t Uart_TxInterrupts = 0;
+uint8_t Rx_indx,Transfer_cplt;
+char Rx_data[2],Rx_Buffer[100];
 
-char Rx_indx,Rx_data[2],Rx_Buffer[100],Transfer_cplt;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,9 +128,10 @@ static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USART2_Init(void);
+static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void printDateTime(LCD_t *Lcd, rtc_t *Rtc);
+static void printPid(LCD_t *Lcd, pidc_t *pid);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -106,8 +143,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 		encoderPos=(encoderPos+1)%60;
 		UART_print(&huart1,"\r\nNumero: %d", encoderPos);
+
+		//RTCM_GetDateTime(&Rtc, &hrtc);
+		//printDateTime(&Lcd_2, &Rtc);
+		//printPid(&Lcd_2,&Pid);
 	}
 }
+
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim->Instance==TIM2) //check if the interrupt comes from TIM2
@@ -151,7 +193,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	uint8_t i;
 	if(huart->Instance == USART1)//Current UART
 	{
-		if(Rx_indx ==0)
+		if(Rx_indx == 0)
 		{
 			for(i=0; i<100; i++)
 			{
@@ -180,6 +222,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
+/**
+  * @brief  Alarm callback
+  * @param  hrtc : RTC handle
+  * @retval None
+  */
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
+{
+	LCD_setCursor(&Lcd_2,0,4);
+	LCD_print(&Lcd_2,"Alarma suena");
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	  if (GPIO_Pin == GPIO_PIN_4)
@@ -188,6 +241,58 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		  encoderPos += 5;
 	    //BSP_LED_Toggle(LED3);
 	  }
+}
+
+static void printDateTime(LCD_t *Lcd, rtc_t *Rtc)
+{
+	BIGFONT_printChar(Lcd,':', 7, 0);
+
+	if(Rtc->data.stimestructureget.Hours < 10)
+	{
+		BIGFONT_printNumber(Lcd, 0, 0, 0);
+		BIGFONT_printNumber(Lcd, Rtc->data.stimestructureget.Hours, 4, 0);
+	}
+	else
+	{
+		BIGFONT_printNumber(Lcd, Rtc->data.stimestructureget.Hours, 0, 0);
+	}
+
+	if(Rtc->data.stimestructureget.Minutes < 10)
+	{
+		BIGFONT_printNumber(Lcd, 0, 10, 0);
+		BIGFONT_printNumber(Lcd, Rtc->data.stimestructureget.Minutes, 14, 0);
+	}
+	else
+	{
+		BIGFONT_printNumber(Lcd, Rtc->data.stimestructureget.Minutes, 10, 0);
+	}
+
+	if(Rtc->data.stimestructureget.Seconds < 10)
+	{
+		LCD_setCursor(Lcd, 18, 0);
+		LCD_print(Lcd,"%d%d", 0, Rtc->data.stimestructureget.Seconds);
+	}
+	else
+	{
+		LCD_setCursor(Lcd, 18, 0);
+		LCD_print(Lcd, "%d", Rtc->data.stimestructureget.Seconds);
+	}
+
+	LCD_setCursor(Lcd, 0, 3);
+	LCD_print(Lcd,"%s/%d/%s/%d", Rtc->data.date, Rtc->data.sdatestructureget.Date, Rtc->data.month,
+			Rtc->data.sdatestructureget.Year+2000);
+}
+
+static void printPid(LCD_t *Lcd, pidc_t *pid)
+{
+	LCD_setCursor(Lcd, 0, 0);
+	LCD_print(Lcd,"*** PID CONTROL ***");
+	LCD_setCursor(Lcd, 0, 1);
+	LCD_print(Lcd,"KP:%d  Set:%d", pid->config.kp, pid->data.setPoint);
+	LCD_setCursor(Lcd, 0, 2);
+	LCD_print(Lcd,"KI:%d", pid->config.Ki);
+	LCD_setCursor(Lcd, 0, 3);
+	LCD_print(Lcd,"KD:%d", pid->config.kd);
 }
 
 /* USER CODE END 0 */
@@ -226,13 +331,16 @@ int main(void)
   MX_TIM2_Init();
   MX_DMA_Init();
   MX_USART1_UART_Init();
-  MX_USART2_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_DMA(&huart1,Rx_data,1u);
+  HAL_UART_Receive_DMA(&huart1, (uint8_t*)Rx_data, 1u);
   LCD_init(&Lcd_2, &Lcd_Hd44780I2cCfg); /* Initialize the LCD to print "normal characters"*/
   BIGFONT_init(&Lcd_2); /*Initialize Big font characters */
   LCD_setBacklight(&Lcd_2, 1u); /* Turn on the Backlight */
   UART_print(&huart1,"\r\nHello World!");
+  RTCM_Init(&Rtc,&hrtc,&rtc_config);
+  RTCM_SetAlarm(&Rtc, &hrtc);
+  PID_init(&Pid,&pidcfg);
   HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
@@ -256,15 +364,18 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -279,6 +390,12 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
@@ -315,6 +432,63 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
+
+  /* USER CODE BEGIN RTC_Init 0 */
+
+  /* USER CODE END RTC_Init 0 */
+
+  RTC_TimeTypeDef sTime = {0};
+  RTC_DateTypeDef DateToUpdate = {0};
+
+  /* USER CODE BEGIN RTC_Init 1 */
+
+  /* USER CODE END RTC_Init 1 */
+  /** Initialize RTC Only 
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
+  hrtc.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* USER CODE BEGIN Check_RTC_BKUP */
+    
+  /* USER CODE END Check_RTC_BKUP */
+
+  /** Initialize RTC and set the Time and Date 
+  */
+  sTime.Hours = 0x10;
+  sTime.Minutes = 0x0;
+  sTime.Seconds = 0x0;
+
+  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  DateToUpdate.WeekDay = RTC_WEEKDAY_MONDAY;
+  DateToUpdate.Month = RTC_MONTH_JUNE;
+  DateToUpdate.Date = 0x10;
+  DateToUpdate.Year = 0x20;
+
+  if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
 
 }
 
@@ -388,7 +562,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 6400;
+  htim3.Init.Prescaler = 7200;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 4999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -447,40 +621,6 @@ static void MX_USART1_UART_Init(void)
 
 }
 
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  husart2.Instance = USART2;
-  husart2.Init.BaudRate = 115200;
-  husart2.Init.WordLength = USART_WORDLENGTH_8B;
-  husart2.Init.StopBits = USART_STOPBITS_1;
-  husart2.Init.Parity = USART_PARITY_NONE;
-  husart2.Init.Mode = USART_MODE_TX_RX;
-  husart2.Init.CLKPolarity = USART_POLARITY_LOW;
-  husart2.Init.CLKPhase = USART_PHASE_1EDGE;
-  husart2.Init.CLKLastBit = USART_LASTBIT_DISABLE;
-  if (HAL_USART_Init(&husart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
 /** 
   * Enable DMA controller clock
   */
@@ -511,11 +651,15 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3|GPIO_PIN_4, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
@@ -524,6 +668,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PA3 PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PB4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -531,7 +682,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
 }
