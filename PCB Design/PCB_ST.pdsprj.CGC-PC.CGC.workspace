@@ -1,17 +1,17 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <WORKSPACE>
  <FRAME activewindow="3">
-  <PLACEMENT>2c0000000200000003000000ffffffffffffffffffffffffffffffff4001000011000000fd040000d8020000</PLACEMENT>
+  <PLACEMENT>2c00000002000000030000000083ffff0083ffffffffffffffffffff4001000011000000fd040000d8020000</PLACEMENT>
   <WINDOW type="default" module="ISIS"/>
   <WINDOW type="default" module="ARES"/>
+  <WINDOW type="default" module="BOM"/>
   <WINDOW type="VIEW3D" module="VIEW3D">
    <camera>
-    <position x="1516700" y="-6115055" z="5890975"/>
-    <focus x="1516700" y="-224080" z="0"/>
-    <up x="0" y="707106" z="707106"/>
+    <position x="-1287965" y="-8376825" z="-18138286"/>
+    <focus x="1772404" y="2347648" z="-1542747"/>
+    <up x="-127225" y="843597" z="-521695"/>
    </camera>
   </WINDOW>
-  <WINDOW type="default" module="BOM"/>
  </FRAME>
  <MODULE name="VSMDEBUG">
   <PWI/>

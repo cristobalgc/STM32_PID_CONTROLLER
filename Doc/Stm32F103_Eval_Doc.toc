@@ -7,10 +7,10 @@
 \contentsline {section}{\numberline {2}Montaje}{6}{section.2}% 
 \contentsline {subsection}{\numberline {2.1}Gu\IeC {\'\i }a de montaje}{6}{subsection.2.1}% 
 \contentsline {subsection}{\numberline {2.2}Programaci\IeC {\'o}n del dispositivo}{8}{subsection.2.2}% 
-\contentsline {section}{\numberline {3}C\IeC {\'o}digos de programaci\IeC {\'o}n}{8}{section.3}% 
-\contentsline {section}{\numberline {4}Secci\IeC {\'o}n Planos}{8}{section.4}% 
-\contentsline {subsection}{Esquema electr\IeC {\'o}nico de la placa Blue pill}{9}{section*.9}% 
-\contentsline {subsection}{Esquema electr\IeC {\'o}nico del expansor de entradas-salidas IIC}{10}{Plano.1}% 
-\contentsline {subsection}{Placa de evaluaci\IeC {\'o}n ST}{11}{Plano.2}% 
-\contentsline {subsection}{Fotolito PCB parte delantera}{12}{Plano.3}% 
-\contentsline {subsection}{Fotolito PCB parte trasera}{13}{Plano.4}% 
+\contentsline {section}{\numberline {3}C\IeC {\'o}digos de programaci\IeC {\'o}n}{9}{section.3}% 
+\contentsline {section}{\numberline {4}Secci\IeC {\'o}n Planos}{9}{section.4}% 
+\contentsline {subsection}{Esquema electr\IeC {\'o}nico de la placa Blue pill}{10}{section*.10}% 
+\contentsline {subsection}{Esquema electr\IeC {\'o}nico del expansor de entradas-salidas IIC}{11}{Plano.1}% 
+\contentsline {subsection}{Placa de evaluaci\IeC {\'o}n ST}{12}{Plano.2}% 
+\contentsline {subsection}{Fotolito PCB parte delantera}{13}{Plano.3}% 
+\contentsline {subsection}{Fotolito PCB parte trasera}{14}{Plano.4}% 
