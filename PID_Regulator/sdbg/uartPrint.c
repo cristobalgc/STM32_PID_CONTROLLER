@@ -89,14 +89,25 @@ static uint8_t uart_transmit(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t
  *
  * @param[in]: LCD_t *lcd - The lcd object to use.
  * @param[in]: char* format - The data string to be printed on the LCD.
+ * @return The number of printed items
  */
- void UART_print(UART_HandleTypeDef *huart, char* format,...)
+uint16_t UART_print(UART_HandleTypeDef *huart, char* format,...)
 {
 	char *traverse = format;
-	uint16_t strLenght = 0u;
-	uint16_t strNumLenght = 0u;
-	uint16_t messageSize = 0u;
+	uint16_t strLenght = 0u; 	//index of the string recorrido
+	uint16_t strNumLenght = 0u;	//longitud del numero
+	uint16_t accumulatedNumber = 0u;
+	uint16_t strStart = 0u;
+	uint16_t counter = 0u;
 	uint8_t go_out = 0u;
+	uint16_t dPerCount = 0u;   	//number of d found after % symbol
+	uint16_t sPerCount = 0u;   	//number of s found after % symbol
+	uint16_t oPerCount = 0u;   	//number of o found after % symbol
+	uint16_t cPerCount = 0u;   	// number of c found after % symbol
+	uint16_t xPerCount = 0u;   	// number of x found after % symbol
+	uint16_t percCount = 0u;  	// number of % found
+	uint16_t discardItemsCount = 0u; // the sum of d,s,o,c,x,perc count variables;
+	uint16_t messageSize = 0u;
 	int32_t i;
 	char *s;
 	//Module 1: Initializing Myprintf's arguments
@@ -104,28 +115,43 @@ static uint8_t uart_transmit(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t
 	memset(str_buffer,'\0',sizeof(str_buffer));
 	va_start(arg, format);
 
-	for(; *traverse != '\0'; traverse++)
+	for(; *traverse != '\0'; traverse++,counter++)
 	{
 		while( (*traverse != '%') && (*traverse != '\0'))
 		{
 			traverse++;
 			strLenght++;
+			counter++;
 		}
 		//Only print if any char detected before "%" special character
 		if(strLenght > 0u)
 		{
-			if(strLenght < UART_BUFF_LEN)
+			if((counter - discardItemsCount + accumulatedNumber)< UART_BUFF_LEN)
 			{
-				(void*)strncat(str_buffer, format, strLenght);
+				if(percCount == 0){
+					(void*)strncat(str_buffer, format+strStart, strLenght);
+				}else{
+					(void*)strncat(str_buffer, format+strStart+2, strLenght);
+				}
+
+				strLenght = 0;
+				strStart = counter;
 			}
 		}
-		traverse++;
+		if((*traverse == '%')){
+			percCount++;
+			traverse++;
+			counter++;
+		}
+
 		//Module 2: Fetching and executing arguments
 		switch(*traverse)
 		{
 		case 'c' :
 			i = va_arg(arg,int);		//Fetch char argument
-			if((strLenght + 1u) < UART_BUFF_LEN)
+			accumulatedNumber++;
+			cPerCount++;
+			if((counter + accumulatedNumber - dPerCount - oPerCount - cPerCount - xPerCount - percCount) < UART_BUFF_LEN)
 			{
 				(void*)strncat(str_buffer, (char*)&i, 1u);
 			}
@@ -133,35 +159,41 @@ static uint8_t uart_transmit(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t
 
 		case 'd' :
 			i = va_arg(arg,int);         //Fetch Decimal/Integer argument
+			dPerCount++;
 			if(i<0)
 			{
+				accumulatedNumber++;
 				i = -i;
-				if((strLenght + 1u) < UART_BUFF_LEN)
+				if(((counter + accumulatedNumber + dPerCount - sPerCount - oPerCount - cPerCount - xPerCount - percCount)) < UART_BUFF_LEN)
 				{
 					(void*)strncat(str_buffer, (char *)"-", 1u);
 				}
 			}
-
-			strNumLenght = strlen(uart_convert(i,UART_DECIMAL));
-			if((strNumLenght + strLenght) < UART_BUFF_LEN)
+			strNumLenght = strlen(uart_convert(i,10));
+			accumulatedNumber += strNumLenght;
+			if(((counter + accumulatedNumber - dPerCount - sPerCount - oPerCount - cPerCount - xPerCount - percCount)) < UART_BUFF_LEN)
 			{
-				(void*)strncat(str_buffer, (char*)uart_convert(i,UART_DECIMAL), strNumLenght);
+				(void*)strncat(str_buffer, (char*)uart_convert(i,10), strNumLenght);
 			}
 			break;
 
 		case 'o':
 			i = va_arg(arg,unsigned int); //Fetch Octal representation
-			strNumLenght = strlen(uart_convert(i,UART_OCTAL));
-			if((strNumLenght + strLenght) < UART_BUFF_LEN)
+			oPerCount++;
+			strNumLenght = strlen(uart_convert(i, 8));
+			accumulatedNumber += strNumLenght;
+			if(((counter+accumulatedNumber - dPerCount - sPerCount - oPerCount - cPerCount - xPerCount - percCount)) < UART_BUFF_LEN)
 			{
-				(void*)strncat(str_buffer, (char *)uart_convert(i,UART_OCTAL), strNumLenght);
+				(void*)strncat(str_buffer, (char *)uart_convert(i, 8), strNumLenght);
 			}
 			break;
 
 		case 's':
 			s = va_arg(arg,char *);       //Fetch string
+			sPerCount++;
 			strNumLenght = strlen(s);
-			if((strNumLenght + strLenght) < UART_BUFF_LEN)
+			accumulatedNumber += strNumLenght;
+			if(((counter + accumulatedNumber - dPerCount - sPerCount - oPerCount - cPerCount - xPerCount - percCount)) < UART_BUFF_LEN)
 			{
 				(void*)strncat(str_buffer, (char *)s, strNumLenght);
 			}
@@ -169,25 +201,28 @@ static uint8_t uart_transmit(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t
 
 		case 'x':
 			i = va_arg(arg,unsigned int); //Fetch Hexadecimal representation
-			strNumLenght = strlen(uart_convert(i,UART_HEX));
-
-			if((strLenght + strNumLenght) < UART_BUFF_LEN)
+			xPerCount++;
+			strNumLenght = strlen(uart_convert(i, 16));
+			accumulatedNumber += strNumLenght;
+			if(((counter + accumulatedNumber - dPerCount - sPerCount - oPerCount - cPerCount - xPerCount - percCount)) < UART_BUFF_LEN)
 			{
-				(void*)strncat(str_buffer, (char *)uart_convert(i,UART_HEX), strNumLenght);
+				(void*)strncat(str_buffer, (char *)uart_convert(i, 16), strNumLenght);
 			}
 			break;
 		default:
-		    go_out = 1u;
+			go_out = 1u;
 			break;
 		}
+		discardItemsCount = dPerCount + sPerCount + oPerCount + cPerCount + xPerCount + percCount;
 		if(go_out){break;}
 	}
-	messageSize = strNumLenght + strLenght;
-	if((messageSize) < UART_BUFF_LEN && (messageSize) > 0u)
+	messageSize = counter - discardItemsCount + accumulatedNumber;
+	if(messageSize < UART_BUFF_LEN)
 	{
 		uart_transmit(huart, (uint8_t *)str_buffer, messageSize, UART_TIMEOUT);
 	}
 
 	//Module 3: Closing argument list to necessary clean-up
 	va_end(arg);
+	return messageSize;
 }

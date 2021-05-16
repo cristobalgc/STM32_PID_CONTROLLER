@@ -65,10 +65,6 @@ void RTCM_GetDateTime(rtc_t *me, RTC_HandleTypeDef *hrtc)
   HAL_RTC_GetDate(hrtc, &me->data.sdatestructureget, RTC_FORMAT_BIN);
   me->data.date = rtc_days[me->data.sdatestructureget.WeekDay];
   me->data.month = rtc_months[me->data.sdatestructureget.Month];
-//  /* Display time Format : hh:mm:ss */
-//  sprintf((char *)showtime, "%2d:%2d:%2d", stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
-//  /* Display date Format : mm-dd-yy */
-//  sprintf((char *)showdate, "%2d-%2d-%2d", sdatestructureget.Month, sdatestructureget.Date, 2000 + sdatestructureget.Year);
 }
 
 

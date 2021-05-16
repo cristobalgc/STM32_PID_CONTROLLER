@@ -1,4 +1,6 @@
-Src/uartPrint.o: ../Src/uartPrint.c \
+lcd/bigFont_lcdI2c.o: ../lcd/bigFont_lcdI2c.c \
+ C:/Users/Cristobal/workspace/PID_Regulator/lcd/bigFont_lcdI2c.h \
+ C:/Users/Cristobal/workspace/PID_Regulator/lcd/lcd_Hd44780I2C.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Inc/stm32f1xx_hal_conf.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h \
@@ -23,10 +25,15 @@ Src/uartPrint.o: ../Src/uartPrint.c \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc_ex.h \
+ C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
- C:/Users/Cristobal/workspace/PID_Regulator/Inc/uartPrint.h
+ ../lcd/../lcd/lcd_Hd44780I2C.h
+
+C:/Users/Cristobal/workspace/PID_Regulator/lcd/bigFont_lcdI2c.h:
+
+C:/Users/Cristobal/workspace/PID_Regulator/lcd/lcd_Hd44780I2C.h:
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
 
@@ -76,10 +83,12 @@ C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm3
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rtc_ex.h:
 
+C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h:
+
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h:
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h:
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h:
 
-C:/Users/Cristobal/workspace/PID_Regulator/Inc/uartPrint.h:
+../lcd/../lcd/lcd_Hd44780I2C.h:

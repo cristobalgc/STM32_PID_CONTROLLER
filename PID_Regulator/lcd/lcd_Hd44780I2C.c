@@ -26,7 +26,8 @@
 /******************************************************************************/
 /*                      Include headers of the component                      */
 /******************************************************************************/
-#include <lcd_Hd44780I2C.h>
+#include "../lcd/lcd_Hd44780I2C.h"
+
 #include<stdio.h>
 #include<stdarg.h>
 #include<string.h>

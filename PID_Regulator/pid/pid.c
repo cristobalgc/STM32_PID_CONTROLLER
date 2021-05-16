@@ -5,7 +5,7 @@
  *      Author: CGC
  */
 
-#include "pid.h"
+#include "../pid/pid.h"
 
 /*
  * @brief Initialize Pid parameters
