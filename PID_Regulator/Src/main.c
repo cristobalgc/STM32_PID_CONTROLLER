@@ -26,14 +26,13 @@
 #include <string.h>
 #include "stm32f1xx_hal.h"
 #include <../ds1302/ds1302.h>
-#include <rtcm.h>
 #include <../menu/menu.h>
 #include "../pid/pid.h"
 
 #include "../lcd/bigFont_lcdI2c.h"
 #include "../lcd/lcd_Hd44780I2C.h"
 
-#include "../sdbg/uartPrint.h"
+#include "../sdbg/sdbg.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,15 +56,21 @@
 #define SET_POINT_INIT_VAL (4217u)
 
 #define HOUR_FORMAT	(0) // 0 = 0-24h; 1= 0-12h
-#define AM_PM		(1)
 #define HOUR 		(15U)
 #define MINUTES 	(10U)
 #define SECONDS 	(10U)
+#define AM_PM		(1U)
 #define WEEKDAY 	(2U)
 #define MONTHDAY 	(5U)
 #define MONTH 		(4U)
 #define YEAR 		(2021U)
 
+#define HOUR_ALARM_FORMAT	(0U) // 0 = 0-24h; 1= 0-12h
+#define HOUR_ALARM			(15U)
+#define MINUTES_ALARM		(10U)
+#define SECONDS_ALARM		(10U)
+#define AM_PM_ALARM			(1U)
+#define ALARM_STATUS		(0U)// OFF
 
 /* USER CODE END PD */
 
@@ -128,6 +133,11 @@ static const menu_dateTimeCfg_t menu_dateTimeCfg ={
 		HOUR_FORMAT, HOUR, MINUTES, SECONDS, AM_PM, WEEKDAY, MONTHDAY, MONTH, YEAR
 };
 
+/* Clock configuration for menu */
+static const menu_alarmCfg_t menu_alarmCfg ={
+		HOUR_ALARM_FORMAT, HOUR_ALARM, MINUTES_ALARM, SECONDS_ALARM, AM_PM_ALARM, ALARM_STATUS
+};
+
 /*Lcd configuration */
 static const LCD_cfg_t Lcd_Hd44780I2cCfg =
 {
@@ -143,6 +153,15 @@ static ds1302_cfg_T ds1302_config = {
 	{GPIOA, GPIO_PIN_4}
 };
 
+static const menu_item_T menu1_cfg_options[6]={
+        {0, menu_op1, menu_op1_sel, menu_PidSelected},
+		{1, menu_op2, menu_op2_sel, menu_HourSelected},
+		{2, menu_op3, menu_op3_sel, menu_enterPidOptions},
+		{3, menu_op4, menu_op4_sel, menu_enterClockOptions},//
+		{4, menu_op5, menu_op5_sel, menu_ChangePwmSelected},
+		{5, menu_Exit, menu_Exit_sel, menu_ExitSelected},
+};
+
 /* MENU screen config */
 static const menu_cfg_T menu1_cfg = {
 		&Lcd_2,
@@ -150,25 +169,13 @@ static const menu_cfg_T menu1_cfg = {
 		MENU_SCREEN_NO_FREEZE,
 		4,//max lines
 		0,//line start
-		9,//max options
-		4,//min menu start option
-		{
-				{0, menu_empty, menu_empty, NULL},
-				{1, menu_empty, menu_empty, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-                {4, menu_op1, menu_op1_sel, menu_PidSelected},
-				{5, menu_op2, menu_op2_sel, menu_HourSelected},
-				{6, menu_op3, menu_op3_sel, menu_showPidOptions},
-				{7, menu_op4, menu_op4_sel, menu_showClockOptions},//
-				{8, menu_op5, menu_op5_sel, menu_ChangePwmSelected},
-				{9, menu_Exit, menu_Exit_sel, menu_ExitSelected},
-				{10, menu_empty, menu_empty, NULL},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		5,//max options
+		0,//min menu start option
+		&menu1_cfg_options[0]
+};
+
+static const menu_item_T menu_defaultHourOptions[1]={
+		{0, menu_empty, menu_empty, menu_defaultHourSel},
 };
 
 /* HOUR screen config */
@@ -176,27 +183,18 @@ static const menu_cfg_T menu_defaultHour = {
 		&Lcd_2,
 		MENU_DEFAULT_HOUR,
 		MENU_SCREEN_NO_FREEZE,
-		4,
-		0,
-		7,
-		4,
-		{
-				{0, menu_empty, menu_empty, NULL},
-				{1, menu_empty, menu_empty, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, menu_defaultHourSel},
-				{5, menu_empty, menu_empty, menu_defaultHourSel},
-				{6, menu_empty, menu_empty, menu_defaultHourSel},
-				{7, menu_empty, menu_empty, menu_defaultHourSel},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, NULL},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		4,//max lines
+		0,//line start
+		0,//max options
+		0,//min menu start option
+		&menu_defaultHourOptions[0]
+};
+
+static const menu_item_T menu_defaultPidOptions[4]={
+		{0, menu_defLine1Pid, menu_defLine1Pid, menu_defaultPidSel},
+		{1, menu_defLine2Pid, menu_defLine2Pid, menu_defaultPidSel},
+		{2, menu_defLine3Pid, menu_defLine3Pid, menu_defaultPidSel},
+		{3, menu_defLine4Pid, menu_defLine4Pid, menu_defaultPidSel},
 };
 
 /* Pid screen config for PID*/
@@ -206,25 +204,23 @@ static const menu_cfg_T menu_defaultPid = {
 		MENU_SCREEN_NO_FREEZE,
 		4,
 		0,
-		7,
-		4,
-		{
-				{0, menu_empty, menu_empty, NULL},
-				{1, menu_empty, menu_empty, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_defLine1Pid, menu_defLine1Pid, menu_defaultPidSel},
-				{5, menu_defLine2Pid, menu_defLine2Pid, menu_defaultPidSel},
-				{6, menu_defLine3Pid, menu_defLine3Pid, menu_defaultPidSel},
-				{7, menu_defLine4Pid, menu_defLine4Pid, menu_defaultPidSel},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, NULL},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		3,
+		0,
+		&menu_defaultPidOptions[0]
+};
+
+static const menu_item_T menu_ChangePidSettingsOptions[11]={
+		{0, submenu1_op1, submenu1_op1, NULL},
+		{1, menu_empty, submenu1_op2, menu_ChangeKpEntireSel},
+		{2, menu_empty, submenu1_op3, menu_ChangeKpDecimalSel},
+		{3, menu_empty, submenu1_op4, menu_ChangeKiEntireSel},
+		{4, menu_empty, submenu1_op5, menu_ChangeKiDecimalSel},
+		{5, menu_empty, submenu1_op6, menu_ChangeKdEntireSel},
+		{6, menu_empty, submenu1_op7, menu_ChangeKdDecimalSel},
+		{7, menu_empty, submenu1_op8, menu_ChangeSetPointEntireSel},
+		{8, menu_empty, submenu1_op9, menu_ChangeSetPointDecimalSel},
+		{9, menu_empty, submenu1_op10, menu_ExitAndSavePid},
+		{10, menu_empty, submenu1_op11, menu_exitAndNoSavePid},
 };
 
 /* Screen to Change PID settings*/
@@ -234,25 +230,24 @@ static const menu_cfg_T menu_ChangePidSettings = {
 		MENU_SCREEN_NO_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		13,// number of menu items
-		4, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, menu_empty, menu_empty, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, submenu1_op2, menu_ChangeKpEntireSel},
-				{5, menu_empty, submenu1_op3, menu_ChangeKpDecimalSel},
-				{6, menu_empty, submenu1_op4, menu_ChangeKiEntireSel},
-				{7, menu_empty, submenu1_op5, menu_ChangeKiDecimalSel},
-				{8, menu_empty, submenu1_op6, menu_ChangeKdEntireSel},
-				{9, menu_empty, submenu1_op7, menu_ChangeKdDecimalSel},
-				{10, menu_empty, submenu1_op8, menu_ChangeSetPointEntireSel},
-				{11, menu_empty, submenu1_op9, menu_ChangeSetPointDecimalSel},
-				{12, menu_empty, submenu1_op10, menu_ExitAndSavePid},
-				{13, menu_empty, submenu1_op11, menu_exitAndNoSavePid},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		10,// number of menu items
+		1, //min menu start option
+		&menu_ChangePidSettingsOptions[0]
+};
+
+static const menu_item_T menu_ChangeDateTimeOptions[12]={
+		{0, submenu3_op1, submenu3_op1, NULL},
+		{1, menu_empty, submenu3_op2, menu_ChangeHourFormatSel},
+		{2, menu_empty, submenu3_op6, menu_ChangeAmPmSel},
+		{3, menu_empty, submenu3_op3, menu_ChangeHourSel},
+		{4, menu_empty, submenu3_op4, menu_ChangeMinSel},
+		{5, menu_empty, submenu3_op5, menu_ChangeSecSel},
+		{6, menu_empty, submenu3_op7, menu_ChangeWeekDaySel},
+		{7, menu_empty, submenu3_op8, menu_ChangeMonthDaySel},
+		{8, menu_empty, submenu3_op9, menu_ChangeMonthSel},
+		{9, menu_empty, submenu3_op10, menu_ChangeYearSel},
+		{10, menu_empty, submenu3_op11, menu_exitAndSaveDateTime},
+		{11, menu_empty, submenu3_op12, menu_exitAndNoSaveDateTime},
 };
 
 /* Screen to Change Hours*/
@@ -262,25 +257,13 @@ static const menu_cfg_T menu_ChangeDateTime = {
 		MENU_SCREEN_NO_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		14,// number of menu items
-		4, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, menu_empty, menu_empty, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, submenu3_op2, menu_ChangeHourFormatSel},
-				{5, menu_empty, submenu3_op6, menu_ChangeAmPmSel},
-				{6, menu_empty, submenu3_op3, menu_ChangeHourSel},
-				{7, menu_empty, submenu3_op4, menu_ChangeMinSel},
-				{8, menu_empty, submenu3_op5, menu_ChangeSecSel},
-				{9, menu_empty, submenu3_op7, menu_ChangeWeekDaySel},
-				{10, menu_empty, submenu3_op8, menu_ChangeMonthDaySel},
-				{11, menu_empty, submenu3_op9, menu_ChangeMonthSel},
-				{12, menu_empty, submenu3_op10, menu_ChangeYearSel},
-				{13, menu_empty, submenu3_op11, menu_exitAndSave},
-				{14, menu_empty, submenu3_op12, menu_exitAndNoSave},
-		}
+		11,// number of menu items
+		1, //min menu start option
+		&menu_ChangeDateTimeOptions[0]
+};
+
+static const menu_item_T menu_changeHourFormatOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
 };
 
 /* Screen to Change Hour format */
@@ -292,27 +275,15 @@ static const menu_cfg_T menu_changeHourFormat = {
 		1, // Print the entire menu rotating on this line
 		1,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op2, submenu3_op2, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeHourFormatOptions[0]
 };
 
-/* Screen to Change Hour format */
-static const menu_cfg_T menu_changeHourAmPm = {
+static const menu_item_T menu_changeHourAmPmOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+};
+
+/* Screen to Change Hour mode */
+static const  menu_cfg_T menu_changeHourAmPm = {
 		&Lcd_2,
 		MENU_CHANGE_HOUR_AM_PM,
 		MENU_SCREEN_FREEZE,
@@ -320,23 +291,11 @@ static const menu_cfg_T menu_changeHourAmPm = {
 		1, // Print the entire menu rotating on this line
 		1,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op6, submenu3_op6, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeHourAmPmOptions[0]
+};
+
+static const menu_item_T menu_changeHoursOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
 };
 
 /* Screen to Change Hours */
@@ -348,23 +307,11 @@ static const menu_cfg_T menu_changeHours = {
 		1, // Print the entire menu rotating on this line
 		23,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op3, submenu3_op3, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeHoursOptions[0]
+};
+
+static const menu_item_T menu_changeMinutesOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
 };
 
 /* Screen to Change Minutes */
@@ -376,24 +323,14 @@ static const menu_cfg_T menu_changeMinutes = {
 		1, // Print the entire menu rotating on this line
 		59,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op4, submenu3_op4, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeMinutesOptions[0]
 };
+
+
+static const menu_item_T menu_changeSecondsOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+};
+
 
 /* Screen to Change Seconds */
 static const menu_cfg_T menu_changeSeconds = {
@@ -404,23 +341,11 @@ static const menu_cfg_T menu_changeSeconds = {
 		1, // Print the entire menu rotating on this line
 		59,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op5, submenu3_op5, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeSecondsOptions[0]
+};
+
+static const menu_item_T menu_changeWeekDayOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
 };
 
 /* Screen to Change the day of the week */
@@ -432,24 +357,13 @@ static const menu_cfg_T menu_changeWeekDay = {
 		1, // Print the entire menu rotating on this line
 		7, // number of menu items
 		1, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op7, submenu3_op7, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeWeekDayOptions[0]
 };
+
+static const menu_item_T menu_changeMonthDayOptions[1]= {
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+};
+
 
 /* Screen to Change the day of the current month*/
 static const menu_cfg_T menu_changeMonthDay = {
@@ -460,23 +374,11 @@ static const menu_cfg_T menu_changeMonthDay = {
 		1, // Print the entire menu rotating on this line
 		31,// number of menu items
 		1, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op8, submenu3_op8, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeMonthDayOptions[0]
+};
+
+static const menu_item_T menu_changeMonthOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
 };
 
 /* Screen to Change the day of the current month*/
@@ -488,25 +390,12 @@ static const menu_cfg_T menu_changeMonth = {
 		1, // Print the entire menu rotating on this line
 		12,// number of menu items
 		1, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op9, submenu3_op9, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeMonthOptions[0]
 };
 
+static const menu_item_T menu_changeYearOptions[1]={
+	{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+};
 
 /* Screen to Change the day of the current month*/
 static const menu_cfg_T menu_changeYear = {
@@ -517,25 +406,12 @@ static const menu_cfg_T menu_changeYear = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		21, //min menu start option
-		{
-				{0, submenu3_op1, submenu3_op1, NULL},
-				{1, submenu3_op10, submenu3_op10, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangeClockSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeYearOptions[0]
 };
 
+static const menu_item_T menu_changeKpEntireOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+};
 
 /* Screen to Change the Entire part of the KP parameter*/
 static const menu_cfg_T menu_changeKpEntire = {
@@ -546,23 +422,11 @@ static const menu_cfg_T menu_changeKpEntire = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op2, submenu1_op2, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeKpEntireOptions[0]
+};
+
+static const menu_item_T menu_changeKpDecimalOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
 };
 
 /* Screen to Change the decimal part of the KP parameter*/
@@ -574,23 +438,11 @@ static const menu_cfg_T menu_changeKpDecimal = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op3, submenu1_op3, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeKpDecimalOptions[0]
+};
+
+static const menu_item_T menu_changeKiEntireOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
 };
 
 /* Screen to Change the Entire part of the KP parameter*/
@@ -602,27 +454,15 @@ static const menu_cfg_T menu_changeKiEntire = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op4, submenu1_op4, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeKiEntireOptions[0]
+};
+
+static const menu_item_T menu_changeKiDecimalOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
 };
 
 /* Screen to Change the decimal part of the KP parameter*/
-static const menu_cfg_T menu_changeKiDecimal = {
+static menu_cfg_T menu_changeKiDecimal = {
 		&Lcd_2,
 		MENU_CHANGE_KI_DECIMAL,
 		MENU_SCREEN_FREEZE,
@@ -630,23 +470,11 @@ static const menu_cfg_T menu_changeKiDecimal = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op5, submenu1_op5, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeKiDecimalOptions[0]
+};
+
+static const menu_item_T menu_changeKdEntireOptions[1]=		{
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
 };
 
 /* Screen to Change the Entire part of the KP parameter*/
@@ -658,23 +486,11 @@ static const menu_cfg_T menu_changeKdEntire = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op6, submenu1_op6, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeKdEntireOptions[0]
+};
+
+static const menu_item_T menu_changeKdDecimalOptions[1]=		{
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
 };
 
 /* Screen to Change the decimal part of the KP parameter*/
@@ -686,26 +502,12 @@ static const menu_cfg_T menu_changeKdDecimal = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op7, submenu1_op7, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeKdDecimalOptions[0]
 };
 
-
+static const menu_item_T menu_changeSetPointEntireOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+};
 /* Screen to Change the Entire part of the KP parameter*/
 static const menu_cfg_T menu_changeSetPointEntire = {
 		&Lcd_2,
@@ -715,23 +517,11 @@ static const menu_cfg_T menu_changeSetPointEntire = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op8, submenu1_op8, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeSetPointEntireOptions[0]
+};
+
+static const menu_item_T menu_changeSetPointDecimalOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
 };
 
 /* Screen to Change the decimal part of the KP parameter*/
@@ -743,80 +533,53 @@ static const menu_cfg_T menu_changeSetPointDecimal = {
 		1, // Print the entire menu rotating on this line
 		100,// number of menu items
 		0, //min menu start option
-		{
-				{0, submenu1_op1, submenu1_op1, NULL},
-				{1, submenu1_op9, submenu1_op9, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, menu_empty, menu_empty, NULL},
-				{5, menu_empty, menu_empty, NULL},
-				{6, menu_empty, menu_empty, NULL},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, menu_ChangePidSelected},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		&menu_changeSetPointDecimalOptions[0]
+};
+
+static const menu_item_T menu_PidOptionsOptions[7] ={
+		{0, submenu4_title, submenu4_title, NULL},
+		{1, submenu4_op1, submenu4_op1_sel , menu_enterChangePidSelected},
+		{2, submenu4_op2, submenu4_op2_sel, menu_showPidValues},
+		{3, menu_Exit, menu_Exit_sel, menu_exitGoToMain},
 };
 
 /* Screen to show all PID options */
-static const menu_cfg_T menu_PidOptions = {
+static menu_cfg_T menu_PidOptions = {
 		&Lcd_2,
 		MENU_PID_OPTIONS,
 		MENU_SCREEN_NO_FREEZE,
 		3, // Used Lines to print the menu
-		1, // Print the entire menu rotating on this line
-		6,// number of menu items
-		4, //min menu start option
-		{
-				{0, submenu4_title, submenu4_title, NULL},
-				{1, menu_empty, menu_empty, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, submenu4_op1, submenu4_op1_sel , menu_ChangePidSelected},
-				{5, submenu4_op2, submenu4_op2_sel, menu_showPidValues},
-				{6, menu_Exit, menu_Exit_sel, menu_exitAndNoSave},
-				{7, menu_empty, menu_empty, NULL},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, NULL},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		1, // start printing the menu on this line
+		3,// number of menu items
+		1, //min menu start option
+		&menu_PidOptionsOptions[0]
 };
 
-///* Screen to show all PID options */
-//static const menu_cfg_T menu_clockOptions = {
-//		&Lcd_2,
-//		MENU_CLOCK_OPTIONS,
-//		MENU_SCREEN_NO_FREEZE,
-//		3, // Used Lines to print the menu
-//		1, // Print the entire menu rotating on this line
-//		6,// number of menu items
-//		4, //min menu start option
-//		{
-//				{0, submenu5_title, submenu4_title, NULL},
-//				{1, menu_empty, menu_empty, NULL},
-//				{2, menu_empty, menu_empty, NULL},
-//				{3, menu_empty, menu_empty, NULL},
-//				{4, submenu5_op1, submenu5_op1_sel , menu_ChangeClockSelected},
-//				{5, submenu5_op2, submenu5_op2_sel, NULL}, // menu_ChangeAlarm
-//				{6, menu_Exit, menu_Exit_sel, menu_exitAndNoSave},
-//				{7, menu_empty, menu_empty, NULL},
-//				{8, menu_empty, menu_empty, NULL},
-//				{9, menu_empty, menu_empty, NULL},
-//				{10, menu_empty, menu_empty, NULL},
-//				{11, menu_empty, menu_empty, NULL},
-//				{12, menu_empty, menu_empty, NULL},
-//				{13, menu_empty, menu_empty, NULL},
-//				{14, menu_empty, menu_empty, NULL},
-//		}
-//};
+static const menu_item_T menu_clockOptionsOptions[7]=		{
+		{0, submenu5_title, submenu5_title, NULL},
+		{1, submenu5_op1, submenu5_op1_sel , menu_enterChangeClockSelected},
+		{2, submenu5_op2, submenu5_op2_sel, menu_enterChangeAlarmSelected},
+		{3, menu_Exit, menu_Exit_sel, menu_exitGoToMain},
+};
+
+/* Screen to show all PID options */
+static menu_cfg_T menu_clockOptions = {
+		&Lcd_2,
+		MENU_CLOCK_OPTIONS,
+		MENU_SCREEN_NO_FREEZE,
+		3, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		3,// number of menu items
+		1, //min menu start option
+		&menu_clockOptionsOptions[0]
+};
+
+static const menu_item_T menu_PidValuesOptions[4]={
+		{0, submenu3_Kp, submenu3_Kp, menu_exitAndNoSavePid},
+		{1, submenu3_Ki, submenu3_Ki, menu_exitAndNoSavePid},
+		{2, submenu3_Kd, submenu3_Kd, menu_exitAndNoSavePid},
+		{3, submenu3_Sp, submenu3_Sp, menu_exitAndNoSavePid},
+};
 
 /* Screen to show all PID options */
 static const menu_cfg_T menu_PidValues = {
@@ -825,31 +588,132 @@ static const menu_cfg_T menu_PidValues = {
 		MENU_SCREEN_NO_FREEZE,
 		4, // Used Lines to print the menu
 		0, // Print the entire menu rotating on this line
-		7, // number of menu items
-		4, //min menu start option
-		{
-				{0, menu_empty, menu_empty, NULL},
-				{1, menu_empty, menu_empty, NULL},
-				{2, menu_empty, menu_empty, NULL},
-				{3, menu_empty, menu_empty, NULL},
-				{4, submenu3_Kp, submenu3_Kp, menu_exitAndNoSavePid},
-				{5, submenu3_Ki, submenu3_Ki, menu_exitAndNoSavePid},
-				{6, submenu3_Kd, submenu3_Kd, menu_exitAndNoSavePid},
-				{7, submenu3_Sp, submenu3_Sp, menu_exitAndNoSavePid},
-				{8, menu_empty, menu_empty, NULL},
-				{9, menu_empty, menu_empty, NULL},
-				{10, menu_empty, menu_empty, NULL},
-				{11, menu_empty, menu_empty, NULL},
-				{12, menu_empty, menu_empty, NULL},
-				{13, menu_empty, menu_empty, NULL},
-				{14, menu_empty, menu_empty, NULL},
-		}
+		3, // number of menu items
+		0, //min menu start option
+		&menu_PidValuesOptions[0]
 };
 
+static const menu_item_T menu_ChangeAlarmOptions[9]={
+		{0, submenu6_op1, submenu6_op1, NULL},
+		{1, menu_empty, submenu6_op2, menu_ChangeAlarmHourFormatSel},
+		{2, menu_empty, submenu6_op3, menu_ChangeAlarmAmPmSel},
+		{3, menu_empty, submenu6_op4, menu_ChangeAlarmHourSel},
+		{4, menu_empty, submenu6_op5, menu_ChangeAlarmMinSel},
+		{5, menu_empty, submenu6_op6, menu_ChangeAlarmSecSel},
+		{6, menu_empty, submenu6_op7, menu_ChangeAlarmStatusSel},
+		{7, menu_empty, submenu6_op8, menu_exitAndSaveAlarm},
+		{8, menu_empty, submenu6_op9, menu_exitAndNoSaveAlarm}
+};
 
+/* Screen to Change Hours*/
+static const menu_cfg_T menu_ChangeAlarm = {
+		&Lcd_2,
+		MENU_ALARM_SETTINGS,
+		MENU_SCREEN_NO_FREEZE,
+		1, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		8,// number of menu items
+		1, //min menu start option
+		&menu_ChangeAlarmOptions[0]
+};
 
+static const menu_item_T menu_changeAlarmHourAmPmOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+};
 
-static const menu_cfg_T *menu_configs[26]={
+/* Screen to Change Alarm Hour mode */
+static const  menu_cfg_T menu_changeAlarmHourAmPm = {
+		&Lcd_2,
+		MENU_CHANGE_ALARM_HOUR_AM_PM,
+		MENU_SCREEN_FREEZE,
+		1, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		1,// number of menu items
+		0, //min menu start option
+		&menu_changeAlarmHourAmPmOptions[0]
+};
+
+static const menu_item_T menu_changeAlarmHourFormatOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+};
+
+/* Screen to Change Hour format */
+static const menu_cfg_T menu_changeAlarmHourFormat = {
+		&Lcd_2,
+		MENU_CHANGE_ALARM_HOUR_FORMAT,
+		MENU_SCREEN_FREEZE,
+		1, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		1,// number of menu items
+		0, //min menu start option
+		&menu_changeAlarmHourFormatOptions[0]
+};
+
+static const menu_item_T menu_changeAlarmHoursOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+};
+
+/* Screen to Change Hours */
+static const menu_cfg_T menu_changeAlarmHours = {
+		&Lcd_2,
+		MENU_CHANGE_ALARM_HOUR,
+		MENU_SCREEN_FREEZE,
+		1, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		23,// number of menu items
+		0, //min menu start option
+		&menu_changeAlarmHoursOptions[0]
+};
+
+static const menu_item_T menu_changeAlarmMinutesOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+};
+
+/* Screen to Change Hours */
+static const menu_cfg_T menu_changeAlarmMinutes = {
+		&Lcd_2,
+		MENU_CHANGE_ALARM_MINUTES,
+		MENU_SCREEN_FREEZE,
+		1, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		59,// number of menu items
+		0, //min menu start option
+		&menu_changeAlarmMinutesOptions[0]
+};
+
+static const menu_item_T menu_changeAlarmSecondsOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+};
+
+/* Screen to Change Hours */
+static const menu_cfg_T menu_changeAlarmSeconds = {
+		&Lcd_2,
+		MENU_CHANGE_ALARM_SECONDS,
+		MENU_SCREEN_FREEZE,
+		1, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		59,// number of menu items
+		0, //min menu start option
+		&menu_changeAlarmSecondsOptions[0]
+};
+
+static const menu_item_T menu_changeAlarmStatusOptions[1]={
+		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+};
+
+/* Screen to Change Hours */
+static const menu_cfg_T menu_changeAlarmStatus = {
+		&Lcd_2,
+		MENU_CHANGE_ALARM_STATUS,
+		MENU_SCREEN_FREEZE,
+		1, // Used Lines to print the menu
+		1, // Print the entire menu rotating on this line
+		1,// number of menu items
+		0, //min menu start option
+		&menu_changeAlarmStatusOptions[0]
+};
+
+static const menu_cfg_T *menu_configs[33]={
 		&menu_defaultPid,			//0
 		&menu_defaultPid,			//1
 		&menu_defaultHour,			//2
@@ -875,7 +739,14 @@ static const menu_cfg_T *menu_configs[26]={
 		&menu_changeSetPointEntire,	//22
 		&menu_changeSetPointDecimal,//23
 		&menu_PidValues,			//24
-		//&menu_clockOptions,			//25
+		&menu_clockOptions,			//25
+		&menu_ChangeAlarm,			//26
+		&menu_changeAlarmHourFormat,//27
+		&menu_changeAlarmHourAmPm,  //28
+		&menu_changeAlarmHours,		//29
+		&menu_changeAlarmMinutes,  //30
+		&menu_changeAlarmSeconds,//31
+		&menu_changeAlarmStatus,//32
 };
 
 static uint32_t i2c_TxInterrupts = 0;
@@ -910,7 +781,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if (htim->Instance == TIM3){
 		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 		//encoderPos=(encoderPos+1)%60;
-		UART_print(&huart1,"\r\nNumero: %d", encoderPos);
+		SDBG_print(&huart1,"\r\nNumero: %d", encoderPos);
 		//LCD_setCursor(&Lcd_2,17,0);
 		//LCD_print(&Lcd_2,"%d",encoderPos);
 		//(void)HAL_USART_Transmit_IT(Ds1302.config.channel, (uint8_t*)data_send_test_ds1302, sizeof(data_send_test_ds1302));
@@ -937,7 +808,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	{
 		if(HAL_TIM_Encoder_GetState(&htim2) == HAL_TIM_STATE_READY)
 		{
-			UART_print(&huart1,"\r\nEncoder: %d", TIM2->CNT);
+			SDBG_print(&huart1,"\r\nEncoder: %d", TIM2->CNT);
 			menu_encoderOption (&menu, (int32_t)TIM2->CNT);
 			menu_Task(&menu);
 //			encoderPos++;
@@ -1087,8 +958,8 @@ int main(void)
 	DS1302_Init(&rtc, &ds1302_config);
 	DS1302_setTime(&rtc, HOUR_FORMAT, HOUR, MINUTES, SECONDS, AM_PM, WEEKDAY, MONTHDAY, MONTH, YEAR);
 
-	UART_print(&huart1,"\r\nHello World!");
-	menu_Init(&menu, &menu_configs, &menu_dateTimeCfg, &menuPidCfg);
+	SDBG_print(&huart1,"\r\nHello World!");
+	menu_Init(&menu, &menu_configs, &menu_dateTimeCfg, &menu_alarmCfg, &menuPidCfg);
 	//RTCM_Init(&Rtc,&hrtc,&rtc_config);
 	//RTCM_SetAlarm(&Rtc, &hrtc);
 	PID_init(&Pid,&pidcfg);

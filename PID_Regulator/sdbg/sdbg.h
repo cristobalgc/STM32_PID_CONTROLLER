@@ -5,11 +5,11 @@
 /*                                                                            */
 /******************************************************************************/
 
-/** \file sw_component.h
+/** \file sdbg.h
  *
- * \brief Header file for SW_COMPONENT component
+ * \brief Header file for SDBG component
  *
- * Header file for SW_COMPONENT manager
+ * Header file for SDBG manager
  *
  * <table border="0" cellspacing="0" cellpadding="0">
  * <tr> <td> Author:   </td> <td> C.Garcia   </td></tr>
@@ -17,7 +17,7 @@
  * </table>
  * \n
  * <table border="0" cellspacing="0" cellpadding="0">
- * <tr> <td> COMPONENT: </td> <td> SW_COMPONENT   </td></tr>
+ * <tr> <td> COMPONENT: </td> <td> DS1302    </td></tr>
  * <tr> <td> SCOPE:     </td> <td> Public      </td></tr>
  * <tr> <td> TARGET:    </td> <td> MCU        </td></tr>
  * </table>
@@ -26,8 +26,8 @@
  * \see
  */
 
-#ifndef PID_H_
-#define PID_H_
+#ifndef SDBG_H_
+#define SDBG_H_
 
 /******************************************************************************/
 /*                         Project Includes                                   */
@@ -36,11 +36,7 @@
 /******************************************************************************/
 /*                 Definition of exported symbolic constants                  */
 /******************************************************************************/
-#define PID_ON (1U)
-#define PID_OFF (0U)
 
-#define PID_MAX_DUTYCYCLE_VAL (500u)
-#define PID_MIN_DUTYCYCLE_VAL (0u)
 /******************************************************************************/
 /*                Definition of exported function like macros                 */
 /******************************************************************************/
@@ -48,30 +44,6 @@
 /******************************************************************************/
 /*         Definition of exported types (typedef, enum, struct, union)        */
 /******************************************************************************/
-typedef struct pid_cfg_s
-{
-	int32_t kp;
-	int32_t Ki;
-	int32_t kd;
-	uint32_t ADresolution;
-	uint32_t samplingTime;
-	uint32_t dutycycleInitVal;
-	uint32_t setPointInitVal;
-}pid_cfg_t;
-
-typedef struct pid_data_s
-{
-	uint32_t samplingTime2;
-	uint32_t dutycycle;
-	uint32_t setPoint;
-	uint8_t OnOffFlag;
-}pid_data_t;
-
-typedef struct pid_s
-{
-	pid_cfg_t config;
-	pid_data_t data;
-}pidc_t;
 
 /******************************************************************************/
 /*                    Declaration of exported variables                       */
@@ -80,14 +52,17 @@ typedef struct pid_s
 /******************************************************************************/
 /*                  Declaration of exported constant data                     */
 /******************************************************************************/
+//options
 
+#define UART_USE_DMA_TRANSFER
+//#define UART_USE_IT_TRANSFER
+//#define UART_USE_BLOCK_TRANSFER
+#define UART_BUFF_LEN	(50U)
+#define UART_TIMEOUT	(0U)/* Only used when block transfer is defined */
 /******************************************************************************/
 /*               Declaration of exported function prototypes                  */
 /******************************************************************************/
 
-extern void PID_init(pidc_t *pid, const pid_cfg_t *cfg);
-extern void PID_SetParameters(pidc_t *pid, float kp, float ki, float kd);
-extern void PID_SetSetPointVal(pidc_t *pid, uint32_t setPoint);
-extern void PID_control(pidc_t *pid, uint32_t measuredAdc);
+extern uint16_t SDBG_print(UART_HandleTypeDef *huart , char* format,...);
 
-#endif /* PID_H_ */
+#endif /* SW_COMPONENT */

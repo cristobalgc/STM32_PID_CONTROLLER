@@ -29,13 +29,12 @@ Src/main.o: ../Src/main.c \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
  c:\users\cristobal\workspace\pid_regulator\ds1302\ds1302.h \
- C:/Users/Cristobal/workspace/PID_Regulator/Inc/rtcm.h \
  c:\users\cristobal\workspace\pid_regulator\menu\menu.h \
  c:\users\cristobal\workspace\pid_regulator\lcd\bigfont_lcdi2c.h \
  C:/Users/Cristobal/workspace/PID_Regulator/lcd/lcd_Hd44780I2C.h \
  c:\users\cristobal\workspace\pid_regulator\lcd\lcd_hd44780i2c.h \
  ../Src/../pid/pid.h ../Src/../lcd/bigFont_lcdI2c.h \
- ../Src/../lcd/lcd_Hd44780I2C.h ../Src/../sdbg/uartPrint.h
+ ../Src/../lcd/lcd_Hd44780I2C.h ../Src/../sdbg/sdbg.h
 
 C:/Users/Cristobal/workspace/PID_Regulator/Inc/main.h:
 
@@ -97,8 +96,6 @@ C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm3
 
 c:\users\cristobal\workspace\pid_regulator\ds1302\ds1302.h:
 
-C:/Users/Cristobal/workspace/PID_Regulator/Inc/rtcm.h:
-
 c:\users\cristobal\workspace\pid_regulator\menu\menu.h:
 
 c:\users\cristobal\workspace\pid_regulator\lcd\bigfont_lcdi2c.h:
@@ -113,4 +110,4 @@ c:\users\cristobal\workspace\pid_regulator\lcd\lcd_hd44780i2c.h:
 
 ../Src/../lcd/lcd_Hd44780I2C.h:
 
-../Src/../sdbg/uartPrint.h:
+../Src/../sdbg/sdbg.h:

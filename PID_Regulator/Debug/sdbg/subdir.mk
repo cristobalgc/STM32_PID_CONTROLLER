@@ -4,13 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../sdbg/uartPrint.c 
+../sdbg/sdbg.c 
 
 OBJS += \
-./sdbg/uartPrint.o 
+./sdbg/sdbg.o 
 
 C_DEPS += \
-./sdbg/uartPrint.d 
+./sdbg/sdbg.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

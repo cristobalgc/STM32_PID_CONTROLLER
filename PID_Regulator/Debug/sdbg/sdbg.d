@@ -1,6 +1,4 @@
-menu/menu.o: ../menu/menu.c ../menu/menu.h \
- ../menu/../lcd/bigFont_lcdI2c.h \
- C:/Users/Cristobal/workspace/PID_Regulator/lcd/lcd_Hd44780I2C.h \
+sdbg/sdbg.o: ../sdbg/sdbg.c \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Inc/stm32f1xx_hal_conf.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h \
@@ -29,13 +27,7 @@ menu/menu.o: ../menu/menu.c ../menu/menu.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
- ../menu/../lcd/lcd_Hd44780I2C.h
-
-../menu/menu.h:
-
-../menu/../lcd/bigFont_lcdI2c.h:
-
-C:/Users/Cristobal/workspace/PID_Regulator/lcd/lcd_Hd44780I2C.h:
+ ../sdbg/sdbg.h
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
 
@@ -93,4 +85,4 @@ C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm3
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h:
 
-../menu/../lcd/lcd_Hd44780I2C.h:
+../sdbg/sdbg.h:

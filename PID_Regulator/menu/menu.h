@@ -41,23 +41,13 @@
 /******************************************************************************/
 /*                 Definition of exported symbolic constants                  */
 /******************************************************************************/
-
 #define MENU_ESP_LANG
+
 #define MENU_MAX_ROWS 		(4U)
 #define MENU_MAX_COLS 		(21U)
-#define MENU_MAX_OPTIONS 	(15U)
+
 #define MENU_TRUE 			(1U)
 #define MENU_FALSE 			(0U)
-
-#define MENU_SCREEN_NO_FREEZE	(0U)
-#define MENU_SCREEN_FREEZE	(1U)
-#define MENU_UNKNOWN	"Unknown"
-
-#define MENU_AM "AM"
-#define MENU_PM "PM"
-
-#define MENU_12H "12h"
-#define MENU_24H "24h"
 
 #ifdef MENU_ENG_LANG
 /* Days of a Week */
@@ -68,6 +58,7 @@
 #define MENU_FRIDAY "Fri"
 #define MENU_SATURDAY "Sat"
 #define MENU_SUNDAY "Sun"
+
 /* Months of a year */
 #define MENU_JAN	"Jan"
 #define MENU_FEB "Feb"
@@ -92,8 +83,9 @@
 #define MENU_FRIDAY "Vie"
 #define MENU_SATURDAY "Sab"
 #define MENU_SUNDAY "Dom"
-/* Meses del año */
-#define MENU_JAN	"Ene"
+
+/* Months of year */
+#define MENU_JAN "Ene"
 #define MENU_FEB "Feb"
 #define MENU_MAR "Mar"
 #define MENU_APR "Abr"
@@ -118,12 +110,6 @@
 #define menu_op4_sel 	"Clock Settings     <"
 #define menu_op5  		"PWM settings        "
 #define menu_op5_sel 	"PWM settings       <"
-#define menu_op6 		"menu6               "
-#define menu_op6_sel 	"menu6              <"
-#define menu_op7  		"menu7               "
-#define menu_op7_sel 	"menu7              <"
-#define menu_op8  		"menu8               "
-#define menu_op8_sel  	"menu8              <"
 #define menu_Exit 		"Exit                "
 #define menu_Exit_sel 	"Exit               <"
 #define menu_empty		"                    "
@@ -139,9 +125,6 @@
 #define submenu5_op1		"Change date & time  "
 #define submenu5_op2_sel	"Set alarm          <"
 #define submenu5_op2		"Set alarm           "
-
-
-
 
 #define submenu1_op1	"- CONFIG PID VALUES-"
 #define submenu1_op2	"Change kp entire   <"
@@ -168,6 +151,16 @@
 #define submenu3_op11	"Exit & save        <"
 #define submenu3_op12	"Exit & no save     <"
 
+#define submenu6_op1	"-CHANGE ALARM TIME -"
+#define submenu6_op2	"Change Hour Format <"
+#define submenu6_op3	"Change AM/PM       <"
+#define submenu6_op4	"Change Hour        <"
+#define submenu6_op5	"Change Minutes     <"
+#define submenu6_op6	"Change Seconds     <"
+#define submenu6_op7	"Activate alarm     <"
+#define submenu6_op8	"Exit & save        <"
+#define submenu6_op9	"Exit & no save     <"
+
 #define submenu3_Kp	"KP:"
 #define submenu3_Ki	"KI:"
 #define submenu3_Kd	"KD:"
@@ -178,12 +171,10 @@
 #define submenu2_op3
 #define submenu2_op4
 
-
 #define menu_defLine1Pid " - PID REGULATOR - "
 #define menu_defLine2Pid "Set Point:"
 #define menu_defLine3Pid "Real val:"
 #define menu_defLine4Pid "Duty:"
-
 
 /******************************************************************************/
 /*                Definition of exported function like macros                 */
@@ -199,10 +190,11 @@ typedef enum menu_status_e{
 	MENU_DEFAULT_PID,
 	MENU_DEFAULT_HOUR,
 	MENU_MAIN,
-	MENU_CLOCK_SETTINGS,
+	MENU_PID_OPTIONS,
+	MENU_CLOCK_OPTIONS,
 	MENU_PWM_SETTINGS,
 	MENU_EXIT,
-	MENU_PID_SETTINGS,
+	MENU_CLOCK_SETTINGS,
 	MENU_CHANGE_HOUR_FORMAT,
 	MENU_CHANGE_HOUR_AM_PM,
 	MENU_CHANGE_HOUR,
@@ -212,6 +204,7 @@ typedef enum menu_status_e{
 	MENU_CHANGE_MONTHDAY,
 	MENU_CHANGE_MONTH,
 	MENU_CHANGE_YEAR,
+	MENU_PID_SETTINGS,
 	MENU_CHANGE_KP_ENTIRE,
 	MENU_CHANGE_KP_DECIMAL,
 	MENU_CHANGE_KI_ENTIRE,
@@ -220,12 +213,22 @@ typedef enum menu_status_e{
 	MENU_CHANGE_KD_DECIMAL,
 	MENU_CHANGE_SET_POINT_ENTIRE,
 	MENU_CHANGE_SET_POINT_DECIMAL,
-	MENU_PID_OPTIONS,
 	MENU_PID_VALUES,
-	MENU_CLOCK_OPTIONS,
+	MENU_ALARM_SETTINGS,
+	MENU_CHANGE_ALARM_HOUR_FORMAT,
+	MENU_CHANGE_ALARM_HOUR_AM_PM,
+	MENU_CHANGE_ALARM_HOUR,
+	MENU_CHANGE_ALARM_MINUTES,
+	MENU_CHANGE_ALARM_SECONDS,
+	MENU_CHANGE_ALARM_STATUS,
 }menu_status_t;
 
-typedef struct menu_item_s {
+typedef enum menu_mode_e{
+	MENU_SCREEN_NO_FREEZE, 	/**< when there are some options to show on the screen */
+	MENU_SCREEN_FREEZE  	/**< when the menu only changes a number */
+}menu_mode_T;
+
+typedef struct{
 	uint8_t position;
     char  msg_noSelected[MENU_MAX_COLS];
 	char  msg_selected[MENU_MAX_COLS];
@@ -233,41 +236,51 @@ typedef struct menu_item_s {
 }menu_item_T;
 
 typedef struct menu_dateTimeCfg_s{
-	uint8_t hourFormat; // 0=24h ; 1=12h
-	uint8_t hour;
-	uint8_t minutes;
-	uint8_t seconds;
-	uint8_t amPm; // 0=AM ; 1=PM
-	uint8_t dayOfWeek;
-	uint8_t dayOfMonth;
-	uint8_t month;
+	uint8_t hourFormat; /**< Hour format. 0=24h ; 1=12h */
+	uint8_t hour;		/**< Hour */
+	uint8_t minutes;    /**< Minutes */
+	uint8_t seconds;	/**< Seconds */
+	uint8_t amPm; 		/**< 0=AM ; 1=PM */
+	uint8_t dayOfWeek;  /**< Day of week */
+	uint8_t dayOfMonth; /**< Day of Month */
+	uint8_t month;		/**< Month */
 	uint16_t year;
 }menu_dateTimeCfg_t;
 
+typedef struct menu_alarmCfg_s{
+	uint8_t hourFormatAlarm;	/**< Hour format. 0=24h ; 1=12h */
+	uint8_t hourAlarm;			/**< Hour */
+	uint8_t minutesAlarm;   	/**< Minutes */
+	uint8_t secondsAlarm;   	/**< Seconds */
+	uint8_t amPmAlarm; 			/**< 0=AM ; 1=PM */
+	uint8_t alarmStatus; 		/**< Alarm status. 0=OFF(Inactive); 1 = ON(Active) */
+}menu_alarmCfg_t;
+
 typedef struct menu_pidCfg_s{
-	uint32_t kp;
-	uint32_t ki;
-	uint32_t kd;
-	uint32_t consigna;
+	uint32_t kp;			/**< Kp parameter */
+	uint32_t ki;			/**< Ki parameter */
+	uint32_t kd;			/**< Kd parameter */
+	uint32_t setPoint;		/**< Set point */
 }menu_pidCfg_t;
 
 typedef struct menu_cfg_s {
 	LCD_t *lcd;
 	menu_status_t status;
-	uint8_t freezeScreen;
-	uint8_t MenuMaxLines;
-	uint8_t MenuLinestart;
-	uint8_t menu_maxOptions;
-	uint8_t menu_minOptions;
-	menu_item_T menu_items[MENU_MAX_OPTIONS];
+	menu_mode_T freezeScreen;
+	uint8_t MenuMaxLines;// maximo numero de lineas que tiene el menu
+	uint8_t MenuLinestart;// linea a partir de la cual se imprimira el menu
+	uint8_t menu_maxOptions;// Maxima posicion que puede alcanzar el menu o numero maximo de posibilidades en el menu
+	uint8_t menu_minOptions;// posicion donde empieza el menu o numero minimo de posibilidades del menu
+	const menu_item_T *menu_items;
 }menu_cfg_T;
 
 typedef struct menu_data_s{
-	menu_dateTimeCfg_t dateTimeCfg;
-	menu_pidCfg_t pidCfg;
+	menu_dateTimeCfg_t dateTimeCfg; /**< Contains the configuration parameters for the date & time configuration*/
+	menu_alarmCfg_t alarmCfg;		/**< Contains the configuration parameters for the alarm configuration */
+	menu_pidCfg_t pidCfg;			/**< Contains the configuration parameters for the pid configuration */
 	uint8_t dateTimeChangesAvailable;
 	uint8_t pidChangesAvailable;
-	char *lines[MENU_MAX_ROWS];
+	const char *lines[MENU_MAX_ROWS];
 	uint8_t hour10;
 	uint8_t hour;
 	uint8_t minutes10;
@@ -289,7 +302,13 @@ typedef struct menu_data_s{
 	uint16_t SetPointDecimal;
 	uint16_t adc_val;
 	uint16_t duty;
-	uint32_t menu_index;
+	uint32_t menu_CurrentIndex;
+	uint32_t menu_PreviousIndexLevel1;
+	uint32_t menu_PreviousIndexLevel2;
+	uint32_t menu_PreviousIndexLevel3;
+	uint32_t menu_PreviousIndexLevel4;
+	uint32_t menu_PreviousIndexLevel5;
+	uint32_t menu_PreviousIndexLevel6;
 }menu_data_T;
 
 typedef struct menu_s {
@@ -319,15 +338,16 @@ typedef struct menu_s {
 * Initialize the crc with processor expert parameters
 *
 **/
-extern void menu_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTimeCfg_t *dateTimeCfg, const menu_pidCfg_t *pidCfg);
+extern void menu_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTimeCfg_t *dateTimeCfg, const menu_alarmCfg_t * alarmCfg, const menu_pidCfg_t *pidCfg);
 extern void menu_keyPressed(menu_T * menu);
 extern void menu_Task(menu_T * menu);
 extern void menu_encoderOption (menu_T *menu, int32_t current);
 extern uint8_t menu_defaultScreen( void* userData1, void* userData2);
 extern uint8_t menu_PidSelected( void* userData1, void* userData2);
 extern uint8_t menu_HourSelected( void* userData1, void* userData2);
-extern uint8_t menu_ChangePidSelected( void* userData1, void* userData2);
-extern uint8_t menu_ChangeClockSelected( void* userData1, void* userData2);
+extern uint8_t menu_exitChangePidSelected( void* userData1, void* userData2);
+extern uint8_t menu_enterChangeClockSelected( void* userData1, void* userData2);
+extern uint8_t menu_exitChangeClockSelected( void* userData1, void* userData2);
 extern uint8_t menu_ChangePwmSelected( void* userData1, void* userData2);
 extern uint8_t menu_ExitSelected( void* userData1, void* userData2);
 extern uint8_t menu_defaultPidSel(void* userData1, void* userData2);
@@ -341,8 +361,8 @@ extern uint8_t menu_ChangeWeekDaySel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeMonthDaySel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeMonthSel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeYearSel( void* userData1, void* userData2);
-extern uint8_t menu_exitAndSave( void* userData1, void* userData2);
-extern uint8_t menu_exitAndNoSave( void* userData1, void* userData2);
+extern uint8_t menu_exitAndSaveDateTime( void* userData1, void* userData2);
+extern uint8_t menu_exitAndNoSaveDateTime( void* userData1, void* userData2);
 extern uint8_t menu_ChangeKpEntireSel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeKpEntireSel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeKpDecimalSel( void* userData1, void* userData2);
@@ -354,11 +374,23 @@ extern uint8_t menu_ChangeSetPointEntireSel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeSetPointDecimalSel( void* userData1, void* userData2);
 extern uint8_t menu_ExitAndSavePid( void* userData1, void* userData2);
 extern uint8_t menu_exitAndNoSavePid( void* userData1, void* userData2);
-extern uint8_t menu_showPidOptions( void* userData1, void* userData2);
+extern uint8_t menu_exitGoToMain( void* userData1, void* userData2);
+extern uint8_t menu_enterPidOptions( void* userData1, void* userData2);
 extern uint8_t menu_showPidValues( void* userData1, void* userData2);
-extern uint8_t menu_showClockOptions( void* userData1, void* userData2);
-
+extern uint8_t menu_enterClockOptions( void* userData1, void* userData2);
+extern uint8_t menu_exitAndNoSaveAlarm( void* userData1, void* userData2);
+extern uint8_t menu_exitAndSaveAlarm( void* userData1, void* userData2);
+extern uint8_t menu_exitChangeAlarmSelected( void* userData1, void* userData2);
+extern uint8_t menu_ChangeAlarmAmPmSel( void* userData1, void* userData2);
+extern uint8_t menu_ChangeAlarmHourFormatSel( void* userData1, void* userData2);
+extern uint8_t menu_ChangeAlarmHourSel( void* userData1, void* userData2);
+extern uint8_t menu_ChangeAlarmMinSel( void* userData1, void* userData2);
+extern uint8_t menu_ChangeAlarmSecSel( void* userData1, void* userData2);
+extern uint8_t menu_ChangeAlarmStatusSel( void* userData1, void* userData2);
+extern uint8_t menu_enterChangeAlarmSelected( void* userData1, void* userData2);
+extern uint8_t menu_enterChangePidSelected( void* userData1, void* userData2);
 extern uint8_t menu_GetChangesDataTime(menu_T *menu);
 extern uint8_t menu_GetChangesPid(menu_T *menu);
+extern uint8_t menu_checkAlarm(menu_T *menu);
 #endif /* MENU_H_ */
 
