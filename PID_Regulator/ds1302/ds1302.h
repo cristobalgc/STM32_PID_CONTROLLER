@@ -37,13 +37,7 @@
 /*                 Definition of exported symbolic constants                  */
 /******************************************************************************/
 #define SPANISH_LANGUAGE
-#define DS1302_24H_FORMAT	(0U)
-#define DS1302_12H_FORMAT	(1U)
 
-#define DS1302_UNKNOWN	"Unknown"
-#define DS1302_AM "AM"
-#define DS1302_PM "PM"
-#define DS1302_EMPTY "  "
 
 #ifdef ENGLISH_LANGUAJE
 /* Days of a Week */
@@ -306,11 +300,44 @@ extern ds1302_errors_t DS1302_setTime(ds1302_T *ds1302, const uint8_t hformat, c
   * @retval   None
  */
 extern ds1302_errors_t DS1302_Read(ds1302_T *ds1302, uint8_t RegisterAddr, uint8_t *ptr, uint8_t nbytes);
+
 /**
   * @brief  Update the date and time of the DS1302 driver.
   * @param[in]  ds1302: The DS1302 object.
   * @retval   ds1302_errors_t
  */
 extern ds1302_errors_t DS1302_updateDateTime(ds1302_T *ds1302);
+
+/**
+  * @brief  Get the unit part of the seconds.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The unit part of the seconds number
+ */
+extern uint8_t DS1302_getSecondsUnits(ds1302_T *ds1302);
+
+/**
+  * @brief  Get the decimal part of the seconds.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The decimal part of the seconds number
+ */
+extern uint8_t DS1302_getSecondsDec(ds1302_T *ds1302);
+
+extern uint8_t DS1302_getMinutesUnits(ds1302_T *ds1302);
+
+extern uint8_t DS1302_getMinutesDec(ds1302_T *ds1302);
+
+extern uint8_t DS1302_getHourUnits(ds1302_T *ds1302);
+
+extern uint8_t DS1302_getHourDec(ds1302_T *ds1302);
+
+extern const char* DS1302_geWeekDay(ds1302_T *ds1302);
+
+extern const char* DS1302_getAmPmStatus(ds1302_T *ds1302);
+
+extern uint8_t DS1302_getMonthDay(ds1302_T *ds1302);
+
+extern const char* DS1302_getMonth(ds1302_T *ds1302);
+
+extern uint16_t DS1302_getYear(ds1302_T *ds1302);
 
 #endif /* SW_COMPONENT */

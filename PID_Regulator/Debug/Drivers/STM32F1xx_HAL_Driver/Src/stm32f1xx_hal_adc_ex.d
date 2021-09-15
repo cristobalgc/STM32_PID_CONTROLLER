@@ -1,5 +1,5 @@
-Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.o: \
- ../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.c \
+Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc_ex.o: \
+ ../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc_ex.c \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Inc/stm32f1xx_hal_conf.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h \

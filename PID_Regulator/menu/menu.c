@@ -202,7 +202,7 @@ static void menu_PrintDefaultPid(const menu_T *menu){
 	LCD_setCursor(menu->cfg->lcd, 0, 1);
 	LCD_print(menu->cfg->lcd, "%s%d.%d", menu->data.lines[1], menu->data.SetPointEntire, menu->data.SetPointDecimal);
 	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s%d", menu->data.lines[2], menu->data.adc_val);
+	LCD_print(menu->cfg->lcd, "%s%d       ", menu->data.lines[2], menu->data.adc_val);
 	LCD_setCursor(menu->cfg->lcd, 0, 3);
 	LCD_print(menu->cfg->lcd, "%s%d", menu->data.lines[3], menu->data.duty);
 }
@@ -604,7 +604,7 @@ static void menu_applyCfg(menu_T *menu, menu_status_t selcCfg){
     	case MENU_MAIN:
     		menu->cfg = menu->globalCfg[3];
     		break;
-    	case MENU_PID_SETTINGS:
+    	case MENU_PID_OPTIONS:
     		menu->cfg = menu->globalCfg[4];
     		break;
     	case MENU_CLOCK_SETTINGS:
@@ -642,7 +642,7 @@ static void menu_applyCfg(menu_T *menu, menu_status_t selcCfg){
     	case MENU_CHANGE_YEAR:
     		menu->cfg = menu->globalCfg[14];
     		break;
-    	case MENU_PID_OPTIONS:
+    	case MENU_PID_SETTINGS:
     		menu->cfg = menu->globalCfg[15];
     		break;
     	case MENU_CHANGE_KP_ENTIRE:
@@ -704,7 +704,7 @@ static void menu_applyCfg(menu_T *menu, menu_status_t selcCfg){
 /*                      Definition of exported functions                      */
 /******************************************************************************/
 
-void menu_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTimeCfg_t *dateTimeCfg, const menu_alarmCfg_t * alarmCfg, const menu_pidCfg_t *pidCfg){
+void MENU_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTimeCfg_t *dateTimeCfg, const menu_alarmCfg_t * alarmCfg, const menu_pidCfg_t *pidCfg){
 
 	if(menu_checkConstraints(menuCfg, dateTimeCfg, pidCfg)){
 		menu->globalCfg = menuCfg;
@@ -740,15 +740,15 @@ void menu_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTime
 		menu->data.duty = 0U;
 		menu->data.menu_CurrentIndex = menu->cfg->menu_minOptions;
 		menu->data.menu_PreviousIndexLevel1 = menu->globalCfg[3]->menu_minOptions;//MENU_MAIN
-		menu->data.menu_PreviousIndexLevel2 = menu->globalCfg[15]->menu_minOptions;//MENU_PID_OPTIONS
+		menu->data.menu_PreviousIndexLevel2 = menu->globalCfg[4]->menu_minOptions;//MENU_PID_OPTIONS
 		menu->data.menu_PreviousIndexLevel3 = menu->globalCfg[25]->menu_minOptions;// MENU_CLOCK_OPTIONS
 		menu->data.menu_PreviousIndexLevel4 = menu->globalCfg[5]->menu_minOptions;// MENU_CLOCK_SETTINGS
 		menu->data.menu_PreviousIndexLevel5 = menu->globalCfg[26]->menu_minOptions;// MENU_ALARM_SETTINGS
-		menu->data.menu_PreviousIndexLevel6 = menu->globalCfg[4]->menu_minOptions;// MENU_PID_SETTINGS
+		menu->data.menu_PreviousIndexLevel6 = menu->globalCfg[15]->menu_minOptions;// MENU_PID_SETTINGS
 	}
 }
 
-void menu_encoderOption (menu_T *menu, int32_t current){
+void MENU_encoderOption (menu_T *menu, int32_t current){
 	if(((current-previous_val)>(menu->cfg->menu_maxOptions - menu->cfg->menu_minOptions)) &&
 			((current-previous_val)> 0)){
 		menu->data.menu_CurrentIndex = menu->cfg->menu_maxOptions;
@@ -793,7 +793,7 @@ void menu_encoderOption (menu_T *menu, int32_t current){
 }
 
 
-void menu_keyPressed(menu_T *menu){
+void MENU_keyPressed(menu_T *menu){
 	if(menu != NULL){
 		// if the menu is not numeric
 		switch (menu->cfg->freezeScreen){
@@ -813,7 +813,7 @@ void menu_keyPressed(menu_T *menu){
 	return;
 }
 
-void menu_Task(menu_T * menu){
+void MENU_Task(menu_T * menu){
 	uint8_t line = 0u;
 	uint8_t reject_lines[MENU_MAX_ROWS] = {80, 80, 80, 80};
 	uint8_t rejected_index = 0;
@@ -1033,7 +1033,7 @@ uint8_t menu_enterClockOptions( void* userData1, void* userData2){
 	return ret_val;
 }
 
-//retorna del menu de la alarma
+//retorna del menu de la alarma a las opciones del reloj
 uint8_t menu_exitAndNoSaveAlarm( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
@@ -1049,12 +1049,12 @@ uint8_t menu_exitAndNoSaveAlarm( void* userData1, void* userData2){
 	return ret_val;
 }
 
-
 //Vuelve al menu main despues de estar en pid
-uint8_t menu_defaultPidSel(void* userData1, void* userData2){
+uint8_t MENU_defaultPidToMainSel(void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
+		menu_cleanLcd((menu_T*)userData1);
 		/* When button is pressed apply the config for the menu 1*/
 		menu_applyCfg((menu_T*)userData1, MENU_MAIN);
 		menu->data.menu_CurrentIndex = menu->data.menu_PreviousIndexLevel1;
@@ -1066,10 +1066,11 @@ uint8_t menu_defaultPidSel(void* userData1, void* userData2){
 }
 
 //Vuelve al menu main despues de estar en default hour
-uint8_t menu_defaultHourSel(void* userData1, void* userData2){
+uint8_t MENU_defaultHourToMainSel(void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
+		menu_cleanLcd((menu_T*)userData1);
 		/* When button is pressed apply the config for the menu 1*/
 		menu_applyCfg((menu_T*)userData1, MENU_MAIN);
 		menu->data.menu_CurrentIndex = menu->data.menu_PreviousIndexLevel1;
@@ -1080,10 +1081,11 @@ uint8_t menu_defaultHourSel(void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_exitGoToMain( void* userData1, void* userData2){
+uint8_t MENU_pidOptionsExitToMain( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
+		menu_cleanLcd((menu_T*)userData1);
 		/* When button is pressed apply the config for the menu 1*/
 		menu_applyCfg((menu_T*)userData1, MENU_MAIN);
 		menu->data.menu_CurrentIndex = menu->data.menu_PreviousIndexLevel1;
@@ -1554,6 +1556,7 @@ uint8_t menu_exitAndSaveAlarm( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
+		/* Clean the LCD */
 		menu_cleanLcd((menu_T*)userData1);
 		/* When button is pressed apply the config for the menu 1*/
 		menu_applyCfg((menu_T*)userData1, MENU_CLOCK_OPTIONS);
@@ -1644,12 +1647,11 @@ uint8_t menu_exitAndNoSaveDateTime( void* userData1, void* userData2){
 	return ret_val;
 }
 
-
-
-uint8_t menu_showPidValues( void* userData1, void* userData2){
+uint8_t MENU_showPidValues( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
+		/* Clean the LCD */
 		menu_cleanLcd((menu_T*)userData1);
 		/* When button is pressed apply the config for the menu 1*/
 		menu_applyCfg((menu_T*)userData1, MENU_PID_VALUES);
@@ -1664,7 +1666,7 @@ uint8_t menu_showPidValues( void* userData1, void* userData2){
 
 uint8_t menu_checkAlarm(menu_T *menu){
 	uint8_t retVal;
-	if((menu->data.alarmCfg.hourAlarm == MENU_BCD2BIN(menu->data.hour10,menu->data.hour)) &&
+	if((menu->data.alarmCfg.alarmStatus == 1u) && (menu->data.alarmCfg.hourAlarm == MENU_BCD2BIN(menu->data.hour10,menu->data.hour)) &&
 			(menu->data.alarmCfg.minutesAlarm == MENU_BCD2BIN(menu->data.minutes10, menu->data.minutes)) &&
 			(menu->data.alarmCfg.secondsAlarm == MENU_BCD2BIN(menu->data.seconds10, menu->data.seconds))){
 		retVal = 1;
@@ -1676,50 +1678,83 @@ uint8_t menu_checkAlarm(menu_T *menu){
 
 uint8_t menu_GetChangesDataTime(menu_T *menu){
 	uint8_t ret_val = menu->data.dateTimeChangesAvailable;
-	menu->data.dateTimeChangesAvailable = 0;
+	menu->data.dateTimeChangesAvailable = 0u;
 	return ret_val;
 }
 
 uint8_t menu_GetChangesPid(menu_T *menu){
 	uint8_t ret_val = menu->data.pidChangesAvailable;
-	menu->data.pidChangesAvailable = 0;
+	menu->data.pidChangesAvailable = 0u;
 	return ret_val;
 }
 
+menu_status_t MENU_GetStatus(menu_T *menu){
+	return menu->cfg->status;
+}
 
-//static void menu_printDateTime(menu_T *menu){
-//	BIGFONT_printChar(menu->cfg->lcd,':', 7, 0);
-//
-//	if(menu->data.hour < 10){
-//		BIGFONT_printNumber(menu->cfg->lcd, 0, 0, 0);
-//		BIGFONT_printNumber(menu->cfg->lcd, menu->data.hour, 4, 0);
-//	} else {
-//		BIGFONT_printNumber(menu->cfg->lcd, menu->data.hour, 0, 0);
-//	}
-//
-//	if(menu->data.minutes < 10){
-//		BIGFONT_printNumber(menu->cfg->lcd, 0, 10, 0);
-//		BIGFONT_printNumber(menu->cfg->lcd, menu->data.minutes, 14, 0);
-//	} else {
-//		BIGFONT_printNumber(menu->cfg->lcd, menu->data.minutes, 10, 0);
-//	}
-//
-//	if(menu->data.seconds < 10){
-//		LCD_setCursor(menu->cfg->lcd, 18, 0);
-//		LCD_print(menu->cfg->lcd,"%d%d", 0, menu->data.seconds);
-//	} else {
-//		LCD_setCursor(menu->cfg->lcd, 18, 0);
-//		LCD_print(menu->cfg->lcd, "%d", menu->data.seconds);
-//	}
-//
-//	LCD_setCursor(menu->cfg->lcd, 0, 3);
-//	LCD_print(menu->cfg->lcd,"%s/%d/%s/%d", menu->data.weekDay, menu->data.monthDay, menu->data.month,
-//			menu->data.year+2000);
-//}
+void menu_SetSecondUnits(menu_T *menu, uint8_t Secondunits){
+	if(menu != NULL){
+		menu->data.seconds = Secondunits;
+	}
+}
 
+void menu_SetSecondDec(menu_T *menu, uint8_t SecondDec){
+	if(menu != NULL){
+		menu->data.seconds10 = SecondDec;
+	}
+}
 
+void menu_SetMinutesUnits(menu_T *menu, uint8_t minutesUnits){
+	if(menu != NULL){
+		menu->data.minutes = minutesUnits;
+	}
+}
 
+void menu_SetMinutesDec(menu_T *menu, uint8_t minutesDec){
+	if(menu != NULL){
+		menu->data.minutes10 = minutesDec;
+	}
+}
 
+void menu_SetHourUnits(menu_T *menu, uint8_t hourUnits){
+	if(menu != NULL){
+		menu->data.hour = hourUnits;
+	}
+}
 
+void menu_SetHourDec(menu_T *menu, uint8_t hourDec){
+	if(menu != NULL){
+		menu->data.hour10 = hourDec;
+	}
+}
 
+void menu_SetYear(menu_T *menu, uint16_t year){
+	if(menu != NULL){
+		menu->data.year = year;
+	}
+}
+
+void menu_SetMonthDay(menu_T *menu, uint8_t monthDay){
+	if(menu != NULL){
+		menu->data.monthDay = monthDay;
+	}
+}
+
+void menu_SetAmPm(menu_T *menu, const char* amPm){
+	if((menu != NULL) && (amPm != NULL)){
+		menu->data.amPm = amPm;
+	}
+}
+
+void menu_SetWeekday(menu_T *menu, const char* weekDay){
+	if((menu != NULL) && (weekDay != NULL)){
+		menu->data.weekDay = weekDay;
+	}
+}
+
+void menu_SetMonth(menu_T *menu, const char* month){
+	if((menu != NULL) && (month != NULL)){
+		menu->data.month = month;
+	}
+}
 

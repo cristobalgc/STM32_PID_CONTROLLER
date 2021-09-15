@@ -56,13 +56,13 @@
 #define SET_POINT_INIT_VAL (4217u)
 
 #define HOUR_FORMAT	(0) // 0 = 0-24h; 1= 0-12h
-#define HOUR 		(15U)
-#define MINUTES 	(10U)
-#define SECONDS 	(10U)
+#define HOUR 		(12U)
+#define MINUTES 	(16U)
+#define SECONDS 	(00U)
 #define AM_PM		(1U)
-#define WEEKDAY 	(2U)
-#define MONTHDAY 	(5U)
-#define MONTH 		(4U)
+#define WEEKDAY 	(1U)
+#define MONTHDAY 	(25U)
+#define MONTH 		(7U)
 #define YEAR 		(2021U)
 
 #define HOUR_ALARM_FORMAT	(0U) // 0 = 0-24h; 1= 0-12h
@@ -81,9 +81,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-I2C_HandleTypeDef hi2c1;
+ADC_HandleTypeDef hadc1;
 
-RTC_HandleTypeDef hrtc;
+I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
 
@@ -101,8 +101,6 @@ DMA_HandleTypeDef hdma_usart1_rx;
 static uint32_t encoderPos = 0;
 /* Lcd object */
 static LCD_t Lcd_2;
-/* RTC object */
-//static rtc_t Rtc; // Borrar
 /* PID object */
 static pidc_t Pid;
 /* DS1302 object */
@@ -110,7 +108,7 @@ static ds1302_T rtc;
 /* Menu object */
 static menu_T menu;
 
-static uint8_t flag_spi=0;
+static uint8_t flag_timer3=0;
 
 /*Pid configuration */
 static const pid_cfg_t pidcfg = {
@@ -175,7 +173,7 @@ static const menu_cfg_T menu1_cfg = {
 };
 
 static const menu_item_T menu_defaultHourOptions[1]={
-		{0, menu_empty, menu_empty, menu_defaultHourSel},
+		{0, menu_empty, menu_empty, MENU_defaultHourToMainSel},
 };
 
 /* HOUR screen config */
@@ -191,10 +189,10 @@ static const menu_cfg_T menu_defaultHour = {
 };
 
 static const menu_item_T menu_defaultPidOptions[4]={
-		{0, menu_defLine1Pid, menu_defLine1Pid, menu_defaultPidSel},
-		{1, menu_defLine2Pid, menu_defLine2Pid, menu_defaultPidSel},
-		{2, menu_defLine3Pid, menu_defLine3Pid, menu_defaultPidSel},
-		{3, menu_defLine4Pid, menu_defLine4Pid, menu_defaultPidSel},
+		{0, menu_defLine1Pid, menu_defLine1Pid, MENU_defaultPidToMainSel},
+		{1, menu_defLine2Pid, menu_defLine2Pid, MENU_defaultPidToMainSel},
+		{2, menu_defLine3Pid, menu_defLine3Pid, MENU_defaultPidToMainSel},
+		{3, menu_defLine4Pid, menu_defLine4Pid, MENU_defaultPidToMainSel},
 };
 
 /* Pid screen config for PID*/
@@ -204,7 +202,7 @@ static const menu_cfg_T menu_defaultPid = {
 		MENU_SCREEN_NO_FREEZE,
 		4,
 		0,
-		3,
+		0,
 		0,
 		&menu_defaultPidOptions[0]
 };
@@ -539,8 +537,8 @@ static const menu_cfg_T menu_changeSetPointDecimal = {
 static const menu_item_T menu_PidOptionsOptions[7] ={
 		{0, submenu4_title, submenu4_title, NULL},
 		{1, submenu4_op1, submenu4_op1_sel , menu_enterChangePidSelected},
-		{2, submenu4_op2, submenu4_op2_sel, menu_showPidValues},
-		{3, menu_Exit, menu_Exit_sel, menu_exitGoToMain},
+		{2, submenu4_op2, submenu4_op2_sel, MENU_showPidValues},
+		{3, menu_Exit, menu_Exit_sel, MENU_pidOptionsExitToMain},
 };
 
 /* Screen to show all PID options */
@@ -559,7 +557,7 @@ static const menu_item_T menu_clockOptionsOptions[7]=		{
 		{0, submenu5_title, submenu5_title, NULL},
 		{1, submenu5_op1, submenu5_op1_sel , menu_enterChangeClockSelected},
 		{2, submenu5_op2, submenu5_op2_sel, menu_enterChangeAlarmSelected},
-		{3, menu_Exit, menu_Exit_sel, menu_exitGoToMain},
+		{3, menu_Exit, menu_Exit_sel, MENU_pidOptionsExitToMain},
 };
 
 /* Screen to show all PID options */
@@ -718,7 +716,7 @@ static const menu_cfg_T *menu_configs[33]={
 		&menu_defaultPid,			//1
 		&menu_defaultHour,			//2
 		&menu1_cfg,					//3
-		&menu_ChangePidSettings,	//4
+		&menu_PidOptions,			//4
 		&menu_ChangeDateTime,		//5
 		&menu_changeHourFormat,		//6
 		&menu_changeHourAmPm,		//7
@@ -729,7 +727,7 @@ static const menu_cfg_T *menu_configs[33]={
 		&menu_changeMonthDay,		//12
 		&menu_changeMonth,			//13
 		&menu_changeYear,			//14
-		&menu_PidOptions,			//15
+		&menu_ChangePidSettings,	//15
 		&menu_changeKpEntire,		//16
 		&menu_changeKpDecimal,		//17
 		&menu_changeKiEntire,		//18
@@ -766,9 +764,9 @@ static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_RTC_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -777,22 +775,18 @@ static void MX_SPI1_Init(void);
 /* USER CODE BEGIN 0 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+	menu_status_t menuStatus = MENU_DEFAULT_CFG;
 	//check if the interrupt comes from TIM3
 	if (htim->Instance == TIM3){
+		menuStatus = MENU_GetStatus(&menu);
 		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		//encoderPos=(encoderPos+1)%60;
 		SDBG_print(&huart1,"\r\nNumero: %d", encoderPos);
-		//LCD_setCursor(&Lcd_2,17,0);
-		//LCD_print(&Lcd_2,"%d",encoderPos);
-		//(void)HAL_USART_Transmit_IT(Ds1302.config.channel, (uint8_t*)data_send_test_ds1302, sizeof(data_send_test_ds1302));
-		//ds1302usart_sendDateTimeCommand(&Ds1302);
-		//RTCM_GetDateTime(&Rtc, &hrtc);
-		//printDateTime(&Lcd_2, &Rtc);
-		//printPid(&Lcd_2,&Pid);
-		if ((menu.cfg->status == MENU_DEFAULT_HOUR) || (menu.cfg->status == MENU_DEFAULT_PID)){
-			menu_Task(&menu);
+		menu.data.adc_val = HAL_ADC_GetValue(&hadc1);
+		if ((menuStatus == MENU_DEFAULT_HOUR) || (menuStatus == MENU_DEFAULT_PID)){
+			MENU_Task(&menu);
 		}
-		flag_spi = 1u;
+		flag_timer3 = 1u;
+
 	}
 	//check if the interrupt comes from TIM4
 	if(htim->Instance == TIM4){
@@ -804,13 +798,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+	menu_status_t menuStatus = MENU_DEFAULT_CFG;
+
 	if (htim->Instance==TIM2) //check if the interrupt comes from TIM2
 	{
 		if(HAL_TIM_Encoder_GetState(&htim2) == HAL_TIM_STATE_READY)
 		{
+			menuStatus = MENU_GetStatus(&menu);
 			SDBG_print(&huart1,"\r\nEncoder: %d", TIM2->CNT);
-			menu_encoderOption (&menu, (int32_t)TIM2->CNT);
-			menu_Task(&menu);
+			MENU_encoderOption (&menu, (int32_t)TIM2->CNT);
+
+			if (( menuStatus!= MENU_DEFAULT_HOUR) && (menuStatus != MENU_DEFAULT_PID)){
+				MENU_Task(&menu);
+			}
 //			encoderPos++;
 //			LCD_setCursor(&Lcd_2,17,0);
 //			LCD_print(&Lcd_2,"%d",encoderPos);
@@ -878,17 +878,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 }
 
 
-/**
-  * @brief  Alarm callback
-  * @param  hrtc : RTC handle
-  * @retval None
-  */
-void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
-{
-	LCD_setCursor(&Lcd_2,0,4);
-	LCD_print(&Lcd_2,"Alarma suena");
-}
-
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	static uint32_t counter = 0u;
@@ -900,8 +889,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		if((HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) == GPIO_PIN_RESET) &&
 				(counter == 1u)){
 			/* Falling edge */
-			menu_keyPressed(&menu);
-			menu_Task(&menu);
+			MENU_keyPressed(&menu);
+			MENU_Task(&menu);
 		}else{
 			/* Rising edge */
 			counter = 0u;
@@ -947,9 +936,9 @@ int main(void)
   MX_TIM2_Init();
   MX_DMA_Init();
   MX_USART1_UART_Init();
-  MX_RTC_Init();
   MX_TIM4_Init();
   MX_SPI1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 	(void)HAL_UART_Receive_DMA(&huart1, (uint8_t*)Rx_data, 1u);
 	LCD_init(&Lcd_2, &Lcd_Hd44780I2cCfg); /* Initialize the LCD to print "normal characters"*/
@@ -957,11 +946,8 @@ int main(void)
 	LCD_setBacklight(&Lcd_2, 1u); /* Turn on the Backlight */
 	DS1302_Init(&rtc, &ds1302_config);
 	DS1302_setTime(&rtc, HOUR_FORMAT, HOUR, MINUTES, SECONDS, AM_PM, WEEKDAY, MONTHDAY, MONTH, YEAR);
-
 	SDBG_print(&huart1,"\r\nHello World!");
-	menu_Init(&menu, &menu_configs, &menu_dateTimeCfg, &menu_alarmCfg, &menuPidCfg);
-	//RTCM_Init(&Rtc,&hrtc,&rtc_config);
-	//RTCM_SetAlarm(&Rtc, &hrtc);
+	MENU_Init(&menu, &menu_configs, &menu_dateTimeCfg, &menu_alarmCfg, &menuPidCfg);
 	PID_init(&Pid,&pidcfg);
 	HAL_TIM_Base_Start_IT(&htim3);
 
@@ -971,27 +957,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		if(flag_spi){
+		if(flag_timer3){
 			DS1302_updateDateTime(&rtc);
 
-			menu.data.seconds = rtc.data.received.seconds.b.Seconds;
-			menu.data.seconds10 = rtc.data.received.seconds.b.Seconds10;
-			menu.data.minutes = rtc.data.received.Minutes.b.Minutes;
-			menu.data.minutes10 = rtc.data.received.Minutes.b.Minutes10;
-
-			if(rtc.data.received.Hour.h24.b.hour_12_24 == DS1302_24H_FORMAT){
-				menu.data.hour = rtc.data.received.Hour.h24.b.Hour;
-				menu.data.hour10 = rtc.data.received.Hour.h24.b.Hour10;
-			}else{
-				menu.data.hour = rtc.data.received.Hour.h12.b.Hour;
-				menu.data.hour10 = rtc.data.received.Hour.h12.b.Hour10;
-				menu.data.amPm = rtc.data.dateandtime.amPm;
-			}
-			menu.data.weekDay = rtc.data.dateandtime.weekday;
-			menu.data.month = rtc.data.dateandtime.month;
-			menu.data.monthDay = rtc.data.dateandtime.monthday;
-			menu.data.year = rtc.data.dateandtime.year;
-			flag_spi=0;
+			menu_SetSecondUnits(&menu, DS1302_getSecondsUnits(&rtc));
+			menu_SetSecondDec(&menu, DS1302_getSecondsDec(&rtc));
+			menu_SetMinutesUnits(&menu, DS1302_getMinutesUnits(&rtc));
+			menu_SetMinutesDec(&menu, DS1302_getMinutesDec(&rtc));
+			menu_SetHourUnits(&menu, DS1302_getHourUnits(&rtc));
+			menu_SetHourDec(&menu, DS1302_getHourDec(&rtc));
+			menu_SetAmPm(&menu, DS1302_getAmPmStatus(&rtc));
+			menu_SetWeekday(&menu, DS1302_geWeekDay(&rtc));
+			menu_SetMonth(&menu, DS1302_getMonth(&rtc));
+			menu_SetMonthDay(&menu,DS1302_getMonthDay(&rtc));
+			menu_SetYear(&menu, DS1302_getYear(&rtc));
+			flag_timer3 = 0;
 		}
 
 		if(menu_GetChangesDataTime(&menu)){
@@ -1005,6 +985,11 @@ int main(void)
 			Pid.config.kd = menu.data.kdEntire;
 			Pid.data.setPoint = menu.data.SetPointEntire;
 		}
+
+		if(menu_checkAlarm(&menu)){
+
+		}
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -1024,10 +1009,9 @@ void SystemClock_Config(void)
 
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
@@ -1049,12 +1033,57 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+  /** Common config 
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel 
+  */
+  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+	HAL_ADC_Start(&hadc1);
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -1088,63 +1117,6 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
-  * @brief RTC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_RTC_Init(void)
-{
-
-  /* USER CODE BEGIN RTC_Init 0 */
-
-  /* USER CODE END RTC_Init 0 */
-
-  RTC_TimeTypeDef sTime = {0};
-  RTC_DateTypeDef DateToUpdate = {0};
-
-  /* USER CODE BEGIN RTC_Init 1 */
-
-  /* USER CODE END RTC_Init 1 */
-  /** Initialize RTC Only 
-  */
-  hrtc.Instance = RTC;
-  hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
-  hrtc.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /* USER CODE BEGIN Check_RTC_BKUP */
-    
-  /* USER CODE END Check_RTC_BKUP */
-
-  /** Initialize RTC and set the Time and Date 
-  */
-  sTime.Hours = 0x10;
-  sTime.Minutes = 0x0;
-  sTime.Seconds = 0x0;
-
-  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  DateToUpdate.WeekDay = RTC_WEEKDAY_MONDAY;
-  DateToUpdate.Month = RTC_MONTH_JUNE;
-  DateToUpdate.Date = 0x10;
-  DateToUpdate.Year = 0x20;
-
-  if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BCD) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RTC_Init 2 */
-
-  /* USER CODE END RTC_Init 2 */
 
 }
 
@@ -1230,9 +1202,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
-  //HAL_TIM_Encoder_Start_DMA(&htim2,TIM_CHANNEL_ALL)
   HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_1);
-  //HAL_TIM_Encoder_Start(&htim2,TIM_CHANNEL_ALL);
   /* USER CODE END TIM2_Init 2 */
 
 }

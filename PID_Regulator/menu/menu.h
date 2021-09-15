@@ -338,10 +338,10 @@ typedef struct menu_s {
 * Initialize the crc with processor expert parameters
 *
 **/
-extern void menu_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTimeCfg_t *dateTimeCfg, const menu_alarmCfg_t * alarmCfg, const menu_pidCfg_t *pidCfg);
-extern void menu_keyPressed(menu_T * menu);
-extern void menu_Task(menu_T * menu);
-extern void menu_encoderOption (menu_T *menu, int32_t current);
+extern void MENU_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTimeCfg_t *dateTimeCfg, const menu_alarmCfg_t * alarmCfg, const menu_pidCfg_t *pidCfg);
+extern void MENU_keyPressed(menu_T * menu);
+extern void MENU_Task(menu_T * menu);
+extern void MENU_encoderOption (menu_T *menu, int32_t current);
 extern uint8_t menu_defaultScreen( void* userData1, void* userData2);
 extern uint8_t menu_PidSelected( void* userData1, void* userData2);
 extern uint8_t menu_HourSelected( void* userData1, void* userData2);
@@ -350,8 +350,8 @@ extern uint8_t menu_enterChangeClockSelected( void* userData1, void* userData2);
 extern uint8_t menu_exitChangeClockSelected( void* userData1, void* userData2);
 extern uint8_t menu_ChangePwmSelected( void* userData1, void* userData2);
 extern uint8_t menu_ExitSelected( void* userData1, void* userData2);
-extern uint8_t menu_defaultPidSel(void* userData1, void* userData2);
-extern uint8_t menu_defaultHourSel(void* userData1, void* userData2);
+extern uint8_t MENU_defaultPidToMainSel(void* userData1, void* userData2);
+extern uint8_t MENU_defaultHourToMainSel(void* userData1, void* userData2);
 extern uint8_t menu_ChangeHourFormatSel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeHourSel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeMinSel( void* userData1, void* userData2);
@@ -374,9 +374,9 @@ extern uint8_t menu_ChangeSetPointEntireSel( void* userData1, void* userData2);
 extern uint8_t menu_ChangeSetPointDecimalSel( void* userData1, void* userData2);
 extern uint8_t menu_ExitAndSavePid( void* userData1, void* userData2);
 extern uint8_t menu_exitAndNoSavePid( void* userData1, void* userData2);
-extern uint8_t menu_exitGoToMain( void* userData1, void* userData2);
+extern uint8_t MENU_pidOptionsExitToMain( void* userData1, void* userData2);
 extern uint8_t menu_enterPidOptions( void* userData1, void* userData2);
-extern uint8_t menu_showPidValues( void* userData1, void* userData2);
+extern uint8_t MENU_showPidValues( void* userData1, void* userData2);
 extern uint8_t menu_enterClockOptions( void* userData1, void* userData2);
 extern uint8_t menu_exitAndNoSaveAlarm( void* userData1, void* userData2);
 extern uint8_t menu_exitAndSaveAlarm( void* userData1, void* userData2);
@@ -392,5 +392,17 @@ extern uint8_t menu_enterChangePidSelected( void* userData1, void* userData2);
 extern uint8_t menu_GetChangesDataTime(menu_T *menu);
 extern uint8_t menu_GetChangesPid(menu_T *menu);
 extern uint8_t menu_checkAlarm(menu_T *menu);
+extern void menu_SetSecondUnits(menu_T *menu, uint8_t Secondunits);
+extern void menu_SetSecondDec(menu_T *menu, uint8_t SecondDec);
+extern void menu_SetMinutesUnits(menu_T *menu, uint8_t minutesUnits);
+extern void menu_SetMinutesDec(menu_T *menu, uint8_t minutesDec);
+extern void menu_SetHourUnits(menu_T *menu, uint8_t hourUnits);
+extern void menu_SetHourDec(menu_T *menu, uint8_t hourDec);
+extern void menu_SetYear(menu_T *menu, uint16_t year);
+extern void menu_SetMonthDay(menu_T *menu, uint8_t monthDay);
+extern void menu_SetAmPm(menu_T *menu, const char* amPm);
+extern void menu_SetWeekday(menu_T *menu, const char* weekDay);
+extern void menu_SetMonth(menu_T *menu, const char* month);
+extern menu_status_t MENU_GetStatus(menu_T *menu);
 #endif /* MENU_H_ */
 

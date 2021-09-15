@@ -41,6 +41,8 @@
 /******************************************************************************/
 /*                   Definition of local symbolic constants                   */
 /******************************************************************************/
+#define DS1302_24H_FORMAT			(0U)
+#define DS1302_12H_FORMAT			(1U)
 #define DS1302_SECONDS_MAX			(59U)
 #define DS1302_MINUTES_MAX			(59U)
 #define DS1302_WEEKDAY_MAX			(7U)
@@ -50,11 +52,17 @@
 #define DS1302_MONTH_MAX			(12U)
 #define DS1302_BURST_MAX_BYTES		(8U)
 #define DS1302_MILENIUM				(2000U)
-#define DS1302_INSTRUCTION_CYCLES	(2U)
+#define DS1302_INSTRUCTION_CYCLES	(2U)	//The number of cycles that an instruction needs to be executed
 #define DS1302_12H					(12U)
 #define DS1302_WEEK_DAYS_MAX		(8U)
 #define DS1302_MONTHS_MAX			(13U)
 #define DS1302_AMPM_MAX				(2U)
+
+#define DS1302_UNKNOWN	("Unknown")
+#define DS1302_AM 		("AM")
+#define DS1302_PM 		("PM")
+#define DS1302_EMPTY 	("  ")
+
 /******************************************************************************/
 /*                  Definition of local function like macros                  */
 /******************************************************************************/
@@ -301,7 +309,7 @@ ds1302_errors_t DS1302_Init(ds1302_T *ds1302, const ds1302_cfg_T *config){
 ds1302_errors_t DS1302_Write(const ds1302_T *ds1302, const uint8_t *data, uint8_t size){
 	ds1302_errors_t error;
 	HAL_GPIO_WritePin(ds1302->cfg.RstPin.McuPort, ds1302->cfg.RstPin.Pinreset, GPIO_PIN_SET);
-	error = HAL_SPI_Transmit(ds1302->cfg.spi,data, size, DS1302_TIMEOUT_MAX);
+	error = HAL_SPI_Transmit(ds1302->cfg.spi, data, size, DS1302_TIMEOUT_MAX);
 	HAL_GPIO_WritePin(ds1302->cfg.RstPin.McuPort, ds1302->cfg.RstPin.Pinreset, GPIO_PIN_RESET);
 	return error;
 }
@@ -312,7 +320,7 @@ ds1302_errors_t DS1302_Read(ds1302_T *ds1302, uint8_t RegisterAddr, uint8_t *ptr
 	RegisterAddr|= 0x01U;// last bit should be set for read
 
 	HAL_GPIO_WritePin(ds1302->cfg.RstPin.McuPort, ds1302->cfg.RstPin.Pinreset, GPIO_PIN_SET);
-	HAL_SPI_Transmit(ds1302->cfg.spi,&RegisterAddr, 1, DS1302_TIMEOUT_MAX);
+	HAL_SPI_Transmit(ds1302->cfg.spi, &RegisterAddr, 1, DS1302_TIMEOUT_MAX);
 	/* Check if we need to read one byte or more */
 	if(nbytes > 1U){
 		error = ds1302_ReadNBytes(ds1302, ptr, nbytes, DS1302_TIMEOUT_MAX);
@@ -401,4 +409,65 @@ ds1302_errors_t DS1302_updateDateTime(ds1302_T *ds1302) {
 	}
 
 	return error;
+}
+
+
+uint8_t DS1302_getSecondsUnits(ds1302_T *ds1302) {
+
+	return ds1302->data.received.seconds.b.Seconds;
+}
+
+uint8_t DS1302_getSecondsDec(ds1302_T *ds1302){
+
+	return ds1302->data.received.seconds.b.Seconds10;
+}
+
+uint8_t DS1302_getMinutesUnits(ds1302_T *ds1302){
+
+	return ds1302->data.received.Minutes.b.Minutes;
+}
+
+uint8_t DS1302_getMinutesDec(ds1302_T *ds1302){
+
+	return ds1302->data.received.Minutes.b.Minutes10;
+}
+
+uint8_t DS1302_getHourUnits(ds1302_T *ds1302){
+	uint8_t ret;
+	if(ds1302->data.received.Hour.h24.b.hour_12_24 == DS1302_24H_FORMAT){
+		ret = ds1302->data.received.Hour.h24.b.Hour;
+	}else{
+		ret = ds1302->data.received.Hour.h12.b.Hour;
+	}
+	return ret;
+}
+
+uint8_t DS1302_getHourDec(ds1302_T *ds1302){
+	uint8_t ret;
+	if(ds1302->data.received.Hour.h24.b.hour_12_24 == DS1302_24H_FORMAT){
+		ret = ds1302->data.received.Hour.h24.b.Hour10;
+	}else{
+		ret = ds1302->data.received.Hour.h12.b.Hour10;
+	}
+	return ret;
+}
+
+const char* DS1302_getAmPmStatus(ds1302_T *ds1302){
+	return ds1302->data.dateandtime.amPm;
+}
+
+uint8_t DS1302_getMonthDay(ds1302_T *ds1302){
+	return ds1302->data.dateandtime.monthday;
+}
+
+const char * DS1302_getMonth(ds1302_T *ds1302){
+	return ds1302->data.dateandtime.month;
+}
+
+extern uint16_t DS1302_getYear(ds1302_T *ds1302){
+	return ds1302->data.dateandtime.year;
+}
+
+const char* DS1302_geWeekDay(ds1302_T *ds1302){
+	return ds1302->data.dateandtime.weekday;
 }
