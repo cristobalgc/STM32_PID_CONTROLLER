@@ -47,22 +47,27 @@
 #define LCD_COLS		(20U)
 #define LCD_I2C_ADDRESS	(0x4E)
 
-#define SAMPLING_TIME (4u)
-#define KI (1)
-#define KD (1)
-#define KP (7u)
-#define AD_RES (5000000/4096)
-#define INITDUTYVAL (500u)
-#define SET_POINT_INIT_VAL (4217u)
+#define SAMPLING_TIME (2U)
+
+#define KP_ENTIRE 	(75U)
+#define KP_DECIMAL	(59U)
+#define KI_ENTIRE 	(15U)
+#define KI_DECIMAL 	(88U)
+#define KD_ENTIRE 	(74U)
+#define KD_DECIMAL 	(36U)
+
+#define AD_RESOLLUTION 		(5000000/4096)
+#define DEFAULT_DUTY_VAL 	(500u)
+#define SET_POINT_INIT_VAL 	(4217u)
 
 #define HOUR_FORMAT	(0) // 0 = 0-24h; 1= 0-12h
-#define HOUR 		(12U)
-#define MINUTES 	(16U)
+#define HOUR 		(17U)
+#define MINUTES 	(25U)
 #define SECONDS 	(00U)
 #define AM_PM		(1U)
 #define WEEKDAY 	(1U)
-#define MONTHDAY 	(25U)
-#define MONTH 		(7U)
+#define MONTHDAY 	(26U)
+#define MONTH 		(9U)
 #define YEAR 		(2021U)
 
 #define HOUR_ALARM_FORMAT	(0U) // 0 = 0-24h; 1= 0-12h
@@ -71,6 +76,8 @@
 #define SECONDS_ALARM		(10U)
 #define AM_PM_ALARM			(1U)
 #define ALARM_STATUS		(0U)// OFF
+
+#define ADC_BUFFER_LEN	(1U)
 
 /* USER CODE END PD */
 
@@ -82,11 +89,13 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
@@ -97,8 +106,6 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 
-/* Number to print in the LCD */
-static uint32_t encoderPos = 0;
 /* Lcd object */
 static LCD_t Lcd_2;
 /* PID object */
@@ -112,18 +119,27 @@ static uint8_t flag_timer3=0;
 
 /*Pid configuration */
 static const pid_cfg_t pidcfg = {
-		KP,
-		KI,
-		KD,
-		AD_RES,
+		KP_ENTIRE,
+		KP_DECIMAL,
+		KI_ENTIRE,
+		KI_DECIMAL,
+		KD_ENTIRE,
+		KD_DECIMAL,
+		AD_RESOLLUTION,
 		SAMPLING_TIME,
-		INITDUTYVAL,
+		DEFAULT_DUTY_VAL,
 		SET_POINT_INIT_VAL
 };
 
 /* Pid configuration for menu */
 static const menu_pidCfg_t menuPidCfg = {
-		KP, KI, KD, SET_POINT_INIT_VAL
+		KP_ENTIRE,
+		KP_DECIMAL,
+		KI_ENTIRE,
+		KI_DECIMAL,
+		KD_ENTIRE,
+		KD_DECIMAL,
+		SET_POINT_INIT_VAL
 };
 
 /* Clock configuration for menu */
@@ -152,12 +168,12 @@ static ds1302_cfg_T ds1302_config = {
 };
 
 static const menu_item_T menu1_cfg_options[6]={
-        {0, menu_op1, menu_op1_sel, menu_PidSelected},
-		{1, menu_op2, menu_op2_sel, menu_HourSelected},
-		{2, menu_op3, menu_op3_sel, menu_enterPidOptions},
+        {0, menu_op1, menu_op1_sel, MENU_PidSelected},
+		{1, menu_op2, menu_op2_sel, MENU_HourSelected},
+		{2, menu_op3, menu_op3_sel, MENU_enterPidOptions},
 		{3, menu_op4, menu_op4_sel, menu_enterClockOptions},//
-		{4, menu_op5, menu_op5_sel, menu_ChangePwmSelected},
-		{5, menu_Exit, menu_Exit_sel, menu_ExitSelected},
+		{4, menu_op5, menu_op5_sel, MENU_ChangePwmSelected},
+		{5, menu_Exit, menu_Exit_sel, MENU_ExitSelected},
 };
 
 /* MENU screen config */
@@ -218,7 +234,7 @@ static const menu_item_T menu_ChangePidSettingsOptions[11]={
 		{7, menu_empty, submenu1_op8, menu_ChangeSetPointEntireSel},
 		{8, menu_empty, submenu1_op9, menu_ChangeSetPointDecimalSel},
 		{9, menu_empty, submenu1_op10, menu_ExitAndSavePid},
-		{10, menu_empty, submenu1_op11, menu_exitAndNoSavePid},
+		{10, menu_empty, submenu1_op11, MENU_exitAndNoSavePid},
 };
 
 /* Screen to Change PID settings*/
@@ -235,10 +251,10 @@ static const menu_cfg_T menu_ChangePidSettings = {
 
 static const menu_item_T menu_ChangeDateTimeOptions[12]={
 		{0, submenu3_op1, submenu3_op1, NULL},
-		{1, menu_empty, submenu3_op2, menu_ChangeHourFormatSel},
+		{1, menu_empty, submenu3_op2, MENU_ChangeHourFormatSel},
 		{2, menu_empty, submenu3_op6, menu_ChangeAmPmSel},
-		{3, menu_empty, submenu3_op3, menu_ChangeHourSel},
-		{4, menu_empty, submenu3_op4, menu_ChangeMinSel},
+		{3, menu_empty, submenu3_op3, MENU_ChangeHourSel},
+		{4, menu_empty, submenu3_op4, MENU_ChangeMinSel},
 		{5, menu_empty, submenu3_op5, menu_ChangeSecSel},
 		{6, menu_empty, submenu3_op7, menu_ChangeWeekDaySel},
 		{7, menu_empty, submenu3_op8, menu_ChangeMonthDaySel},
@@ -261,7 +277,7 @@ static const menu_cfg_T menu_ChangeDateTime = {
 };
 
 static const menu_item_T menu_changeHourFormatOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 /* Screen to Change Hour format */
@@ -277,7 +293,7 @@ static const menu_cfg_T menu_changeHourFormat = {
 };
 
 static const menu_item_T menu_changeHourAmPmOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 /* Screen to Change Hour mode */
@@ -293,7 +309,7 @@ static const  menu_cfg_T menu_changeHourAmPm = {
 };
 
 static const menu_item_T menu_changeHoursOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 /* Screen to Change Hours */
@@ -309,7 +325,7 @@ static const menu_cfg_T menu_changeHours = {
 };
 
 static const menu_item_T menu_changeMinutesOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 /* Screen to Change Minutes */
@@ -326,7 +342,7 @@ static const menu_cfg_T menu_changeMinutes = {
 
 
 static const menu_item_T menu_changeSecondsOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 
@@ -343,7 +359,7 @@ static const menu_cfg_T menu_changeSeconds = {
 };
 
 static const menu_item_T menu_changeWeekDayOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 /* Screen to Change the day of the week */
@@ -359,7 +375,7 @@ static const menu_cfg_T menu_changeWeekDay = {
 };
 
 static const menu_item_T menu_changeMonthDayOptions[1]= {
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 
@@ -376,7 +392,7 @@ static const menu_cfg_T menu_changeMonthDay = {
 };
 
 static const menu_item_T menu_changeMonthOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 /* Screen to Change the day of the current month*/
@@ -392,7 +408,7 @@ static const menu_cfg_T menu_changeMonth = {
 };
 
 static const menu_item_T menu_changeYearOptions[1]={
-	{0, menu_empty, menu_empty, menu_exitChangeClockSelected},
+	{0, menu_empty, menu_empty, MENU_exitChangeClockSelected},
 };
 
 /* Screen to Change the day of the current month*/
@@ -408,10 +424,10 @@ static const menu_cfg_T menu_changeYear = {
 };
 
 static const menu_item_T menu_changeKpEntireOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
 
-/* Screen to Change the Entire part of the KP parameter*/
+/* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKpEntire = {
 		&Lcd_2,
 		MENU_CHANGE_KP_ENTIRE,
@@ -424,10 +440,10 @@ static const menu_cfg_T menu_changeKpEntire = {
 };
 
 static const menu_item_T menu_changeKpDecimalOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
 
-/* Screen to Change the decimal part of the KP parameter*/
+/* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKpDecimal = {
 		&Lcd_2,
 		MENU_CHANGE_KP_DECIMAL,
@@ -440,10 +456,10 @@ static const menu_cfg_T menu_changeKpDecimal = {
 };
 
 static const menu_item_T menu_changeKiEntireOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
 
-/* Screen to Change the Entire part of the KP parameter*/
+/* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKiEntire = {
 		&Lcd_2,
 		MENU_CHANGE_KI_ENTIRE,
@@ -456,10 +472,10 @@ static const menu_cfg_T menu_changeKiEntire = {
 };
 
 static const menu_item_T menu_changeKiDecimalOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
 
-/* Screen to Change the decimal part of the KP parameter*/
+/* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static menu_cfg_T menu_changeKiDecimal = {
 		&Lcd_2,
 		MENU_CHANGE_KI_DECIMAL,
@@ -472,10 +488,10 @@ static menu_cfg_T menu_changeKiDecimal = {
 };
 
 static const menu_item_T menu_changeKdEntireOptions[1]=		{
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
 
-/* Screen to Change the Entire part of the KP parameter*/
+/* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKdEntire = {
 		&Lcd_2,
 		MENU_CHANGE_KD_ENTIRE,
@@ -488,10 +504,10 @@ static const menu_cfg_T menu_changeKdEntire = {
 };
 
 static const menu_item_T menu_changeKdDecimalOptions[1]=		{
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
 
-/* Screen to Change the decimal part of the KP parameter*/
+/* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKdDecimal = {
 		&Lcd_2,
 		MENU_CHANGE_KD_DECIMAL,
@@ -504,9 +520,9 @@ static const menu_cfg_T menu_changeKdDecimal = {
 };
 
 static const menu_item_T menu_changeSetPointEntireOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
-/* Screen to Change the Entire part of the KP parameter*/
+/* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeSetPointEntire = {
 		&Lcd_2,
 		MENU_CHANGE_SET_POINT_ENTIRE,
@@ -519,10 +535,10 @@ static const menu_cfg_T menu_changeSetPointEntire = {
 };
 
 static const menu_item_T menu_changeSetPointDecimalOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangePidSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangePidSelected},
 };
 
-/* Screen to Change the decimal part of the KP parameter*/
+/* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeSetPointDecimal = {
 		&Lcd_2,
 		MENU_CHANGE_SET_POINT_DECIMAL,
@@ -555,7 +571,7 @@ static menu_cfg_T menu_PidOptions = {
 
 static const menu_item_T menu_clockOptionsOptions[7]=		{
 		{0, submenu5_title, submenu5_title, NULL},
-		{1, submenu5_op1, submenu5_op1_sel , menu_enterChangeClockSelected},
+		{1, submenu5_op1, submenu5_op1_sel , MENU_enterChangeClockSelected},
 		{2, submenu5_op2, submenu5_op2_sel, menu_enterChangeAlarmSelected},
 		{3, menu_Exit, menu_Exit_sel, MENU_pidOptionsExitToMain},
 };
@@ -573,10 +589,10 @@ static menu_cfg_T menu_clockOptions = {
 };
 
 static const menu_item_T menu_PidValuesOptions[4]={
-		{0, submenu3_Kp, submenu3_Kp, menu_exitAndNoSavePid},
-		{1, submenu3_Ki, submenu3_Ki, menu_exitAndNoSavePid},
-		{2, submenu3_Kd, submenu3_Kd, menu_exitAndNoSavePid},
-		{3, submenu3_Sp, submenu3_Sp, menu_exitAndNoSavePid},
+		{0, submenu3_Kp, submenu3_Kp, MENU_exitAndNoSavePid},
+		{1, submenu3_Ki, submenu3_Ki, MENU_exitAndNoSavePid},
+		{2, submenu3_Kd, submenu3_Kd, MENU_exitAndNoSavePid},
+		{3, submenu3_Sp, submenu3_Sp, MENU_exitAndNoSavePid},
 };
 
 /* Screen to show all PID options */
@@ -752,8 +768,7 @@ static uint32_t i2c_RxInterrupts = 0;
 static uint32_t Uart_TxInterrupts = 0;
 uint8_t Rx_indx,Transfer_cplt;
 char Rx_data[2],Rx_Buffer[100];
-
-
+static uint16_t adc_buffer[ADC_BUFFER_LEN];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -767,6 +782,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -776,23 +792,29 @@ static void MX_ADC1_Init(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	menu_status_t menuStatus = MENU_DEFAULT_CFG;
-	//check if the interrupt comes from TIM3
-	if (htim->Instance == TIM3){
-		menuStatus = MENU_GetStatus(&menu);
-		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		SDBG_print(&huart1,"\r\nNumero: %d", encoderPos);
-		menu.data.adc_val = HAL_ADC_GetValue(&hadc1);
-		if ((menuStatus == MENU_DEFAULT_HOUR) || (menuStatus == MENU_DEFAULT_PID)){
-			MENU_Task(&menu);
-		}
-		flag_timer3 = 1u;
-
-	}
 	//check if the interrupt comes from TIM4
 	if(htim->Instance == TIM4){
 		HAL_TIM_Base_Stop_IT(&htim4);
 		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
 		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+	}
+
+	//check if the interrupt comes from TIM1
+	if(htim->Instance == TIM1){
+		menuStatus = MENU_GetStatus(&menu);
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		if ((menuStatus == MENU_DEFAULT_HOUR) || (menuStatus == MENU_DEFAULT_PID)){
+			MENU_Task(&menu);
+		}
+		flag_timer3 = 1u;
+	}
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+	if(hadc->Instance == ADC1){
+		PID_control(&Pid, adc_buffer[0]);
+		MENU_SetAdcValue(&menu, PID_GetAdcValule(&Pid));
+		MENU_SetDutyCycle(&menu, PID_GetDutyValule(&Pid));
 	}
 }
 
@@ -800,7 +822,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	menu_status_t menuStatus = MENU_DEFAULT_CFG;
 
-	if (htim->Instance==TIM2) //check if the interrupt comes from TIM2
+	if (htim->Instance == TIM2) //check if the interrupt comes from TIM2
 	{
 		if(HAL_TIM_Encoder_GetState(&htim2) == HAL_TIM_STATE_READY)
 		{
@@ -811,10 +833,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 			if (( menuStatus!= MENU_DEFAULT_HOUR) && (menuStatus != MENU_DEFAULT_PID)){
 				MENU_Task(&menu);
 			}
-//			encoderPos++;
-//			LCD_setCursor(&Lcd_2,17,0);
-//			LCD_print(&Lcd_2,"%d",encoderPos);
-//			BIGFONT_printNumber(&Lcd_2,TIM2->CNT, 0 ,0);
 		}
 	}
 }
@@ -880,20 +898,19 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	static uint32_t counter = 0u;
+	//static uint32_t counter = 0u;
 
 	if (GPIO_Pin == GPIO_PIN_4){
-		counter++;
+		//counter++;
 		HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 		HAL_TIM_Base_Start_IT(&htim4);
-		if((HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) == GPIO_PIN_RESET) &&
-				(counter == 1u)){
+		if((HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) == GPIO_PIN_RESET)){
 			/* Falling edge */
 			MENU_keyPressed(&menu);
 			MENU_Task(&menu);
 		}else{
 			/* Rising edge */
-			counter = 0u;
+			//counter = 0u;
 		}
 		//LCD_setCursor(&Lcd_2,17,0);
 		//LCD_print(&Lcd_2,"%d",counter);
@@ -939,6 +956,7 @@ int main(void)
   MX_TIM4_Init();
   MX_SPI1_Init();
   MX_ADC1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 	(void)HAL_UART_Receive_DMA(&huart1, (uint8_t*)Rx_data, 1u);
 	LCD_init(&Lcd_2, &Lcd_Hd44780I2cCfg); /* Initialize the LCD to print "normal characters"*/
@@ -948,8 +966,23 @@ int main(void)
 	DS1302_setTime(&rtc, HOUR_FORMAT, HOUR, MINUTES, SECONDS, AM_PM, WEEKDAY, MONTHDAY, MONTH, YEAR);
 	SDBG_print(&huart1,"\r\nHello World!");
 	MENU_Init(&menu, &menu_configs, &menu_dateTimeCfg, &menu_alarmCfg, &menuPidCfg);
-	PID_init(&Pid,&pidcfg);
-	HAL_TIM_Base_Start_IT(&htim3);
+	PID_init(&Pid, &pidcfg);
+
+	if(HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1)){
+		Error_Handler();
+	}
+
+	if(HAL_OK != HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&adc_buffer, ADC_BUFFER_LEN)){
+		Error_Handler();
+	}
+
+	if(HAL_OK != HAL_TIM_Base_Start(&htim3)){
+		Error_Handler();
+	}
+
+	if(HAL_OK != HAL_TIM_Base_Start_IT(&htim1)){
+		Error_Handler();
+	}
 
   /* USER CODE END 2 */
 
@@ -960,17 +993,17 @@ int main(void)
 		if(flag_timer3){
 			DS1302_updateDateTime(&rtc);
 
-			menu_SetSecondUnits(&menu, DS1302_getSecondsUnits(&rtc));
-			menu_SetSecondDec(&menu, DS1302_getSecondsDec(&rtc));
-			menu_SetMinutesUnits(&menu, DS1302_getMinutesUnits(&rtc));
-			menu_SetMinutesDec(&menu, DS1302_getMinutesDec(&rtc));
-			menu_SetHourUnits(&menu, DS1302_getHourUnits(&rtc));
-			menu_SetHourDec(&menu, DS1302_getHourDec(&rtc));
-			menu_SetAmPm(&menu, DS1302_getAmPmStatus(&rtc));
-			menu_SetWeekday(&menu, DS1302_geWeekDay(&rtc));
-			menu_SetMonth(&menu, DS1302_getMonth(&rtc));
-			menu_SetMonthDay(&menu,DS1302_getMonthDay(&rtc));
-			menu_SetYear(&menu, DS1302_getYear(&rtc));
+			MENU_SetSecondUnits(&menu, DS1302_getSecondsUnits(&rtc));
+			MENU_SetSecondDec(&menu, DS1302_getSecondsDec(&rtc));
+			MENU_SetMinutesUnits(&menu, DS1302_getMinutesUnits(&rtc));
+			MENU_SetMinutesDec(&menu, DS1302_getMinutesDec(&rtc));
+			MENU_SetHourUnits(&menu, DS1302_getHourUnits(&rtc));
+			MENU_SetHourDec(&menu, DS1302_getHourDec(&rtc));
+			MENU_SetAmPm(&menu, DS1302_getAmPmStatus(&rtc));
+			MENU_SetWeekday(&menu, DS1302_geWeekDay(&rtc));
+			MENU_SetMonth(&menu, DS1302_getMonth(&rtc));
+			MENU_SetMonthDay(&menu,DS1302_getMonthDay(&rtc));
+			MENU_SetYear(&menu, DS1302_getYear(&rtc));
 			flag_timer3 = 0;
 		}
 
@@ -980,10 +1013,10 @@ int main(void)
 		}
 
 		if(menu_GetChangesPid(&menu)){
-			Pid.config.kp = menu.data.kpEntire;
-			Pid.config.Ki = menu.data.kiEntire;
-			Pid.config.kd = menu.data.kdEntire;
-			Pid.data.setPoint = menu.data.SetPointEntire;
+			PID_SetSetPointVal(&Pid, menu.data.SetPointEntire, 0U);
+			PID_SetParameters(&Pid, menu.data.kpEntire, menu.data.kpDecimal,
+					menu.data.kiEntire, menu.data.kiDecimal,
+					menu.data.kdEntire, menu.data.kdDecimal);
 		}
 
 		if(menu_checkAlarm(&menu)){
@@ -1034,7 +1067,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV8;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -1062,9 +1095,9 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -1075,7 +1108,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_8;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -1159,6 +1192,52 @@ static void MX_SPI1_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 7199;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 4999;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -1186,7 +1265,7 @@ static void MX_TIM2_Init(void)
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 15;
+  sConfig.IC1Filter = 10;
   sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
@@ -1226,9 +1305,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 7200;
+  htim3.Init.Prescaler = 7199;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 4999;
+  htim3.Init.Period = 19;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -1240,7 +1319,7 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
@@ -1354,6 +1433,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);

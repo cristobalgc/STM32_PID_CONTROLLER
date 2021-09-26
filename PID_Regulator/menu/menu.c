@@ -63,7 +63,12 @@
 /******************************************************************************/
 /*                  Definition of local function like macros                  */
 /******************************************************************************/
+//  Macros to convert the bcd values of the registers to normal integer variables.  //
+//  The code uses separate variables for the high byte and the low byte of the bcd, //
+//  so these macros handle both bytes separately.//
 #define MENU_BCD2BIN(h,l)   (((h)*10) + (l))
+#define MENU_BIN2BCD_H(x)   ((x)/10)
+#define MENU_BIN2BCD_L(x)   ((x)%10)
 /******************************************************************************/
 /*          Definition of local types (typedef, enum, struct, union)          */
 /******************************************************************************/
@@ -718,26 +723,26 @@ void MENU_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTime
 		menu->data.lines[1] = NULL;
 		menu->data.lines[2] = NULL;
 		menu->data.lines[3] = NULL;
-		menu->data.hour10 = 1U;
-		menu->data.hour = 2U;
-		menu->data.minutes10 = 4U;
-		menu->data.minutes = 5U;
-		menu->data.seconds10 = 3U;
-		menu->data.seconds = 2U;
-		menu->data.year = 2021U;
-		menu->data.monthDay = 21U;
+		menu->data.hour10 = MENU_BIN2BCD_L(menu->data.dateTimeCfg.hour);
+		menu->data.hour = MENU_BIN2BCD_H(menu->data.dateTimeCfg.hour);
+		menu->data.minutes10 = MENU_BIN2BCD_L(menu->data.dateTimeCfg.minutes);
+		menu->data.minutes = MENU_BIN2BCD_H(menu->data.dateTimeCfg.minutes);
+		menu->data.seconds10 = MENU_BIN2BCD_L(menu->data.dateTimeCfg.seconds);
+		menu->data.seconds = MENU_BIN2BCD_H(menu->data.dateTimeCfg.seconds);
+		menu->data.year = menu->data.dateTimeCfg.year;
+		menu->data.monthDay = menu->data.dateTimeCfg.dayOfMonth;
 		menu->data.weekDay = NULL;
 		menu->data.month = NULL;
 		menu->data.amPm = NULL;
-		menu->data.kpEntire = 50U;
-		menu->data.kpDecimal = 500U;
-		menu->data.kiEntire = 0U;
-		menu->data.kiDecimal = 2U;
-		menu->data.kdEntire = 10U;
-		menu->data.kdDecimal = 103U;
-		menu->data.SetPointEntire = 1000U;
-		menu->data.SetPointDecimal = 789U;
-		menu->data.duty = 0U;
+		menu->data.kpEntire = menu->data.pidCfg.kpCfgEntire;
+		menu->data.kpDecimal = menu->data.pidCfg.kpCfgDec;
+		menu->data.kiEntire = menu->data.pidCfg.kiCfgEntire;
+		menu->data.kiDecimal = menu->data.pidCfg.kiCfgDec;
+		menu->data.kdEntire = menu->data.pidCfg.kdCfgEntire;
+		menu->data.kdDecimal = menu->data.pidCfg.kdCfgDec;
+		menu->data.SetPointEntire = menu->data.pidCfg.setPointCfg;
+		menu->data.SetPointDecimal = 0U; //Todo
+		menu->data.duty = 0U; //Todo
 		menu->data.menu_CurrentIndex = menu->cfg->menu_minOptions;
 		menu->data.menu_PreviousIndexLevel1 = menu->globalCfg[3]->menu_minOptions;//MENU_MAIN
 		menu->data.menu_PreviousIndexLevel2 = menu->globalCfg[4]->menu_minOptions;//MENU_PID_OPTIONS
@@ -965,7 +970,7 @@ void MENU_Task(menu_T * menu){
 	return;
 }
 
-uint8_t menu_PidSelected( void* userData1, void* userData2){
+uint8_t MENU_PidSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -982,7 +987,7 @@ uint8_t menu_PidSelected( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_HourSelected( void* userData1, void* userData2){
+uint8_t MENU_HourSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1000,7 +1005,7 @@ uint8_t menu_HourSelected( void* userData1, void* userData2){
 }
 
 //entra en las opciones de pid
-uint8_t menu_enterPidOptions( void* userData1, void* userData2){
+uint8_t MENU_enterPidOptions( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1216,7 +1221,7 @@ uint8_t menu_ChangeSetPointDecimalSel( void* userData1, void* userData2){
 }
 
 //enta en las opciones de cambio de hora y fecha
-uint8_t menu_enterChangeClockSelected( void* userData1, void* userData2){
+uint8_t MENU_enterChangeClockSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1235,7 +1240,7 @@ uint8_t menu_enterChangeClockSelected( void* userData1, void* userData2){
 
 
 //Sale de las opciones de cambio de hora y fecha
-uint8_t menu_exitChangeClockSelected( void* userData1, void* userData2){
+uint8_t MENU_exitChangeClockSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1303,7 +1308,7 @@ uint8_t menu_enterChangePidSelected( void* userData1, void* userData2){
 }
 
 
-uint8_t menu_exitChangePidSelected( void* userData1, void* userData2){
+uint8_t MENU_exitChangePidSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1319,13 +1324,13 @@ uint8_t menu_exitChangePidSelected( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangePwmSelected( void* userData1, void* userData2){
+uint8_t MENU_ChangePwmSelected( void* userData1, void* userData2){
 	/* pWM settings */
 	return 0;
 }
 
 
-uint8_t menu_ChangeHourFormatSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeHourFormatSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1356,7 +1361,7 @@ uint8_t menu_ChangeAmPmSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeHourSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeHourSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1371,7 +1376,7 @@ uint8_t menu_ChangeHourSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeMinSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeMinSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1568,7 +1573,7 @@ uint8_t menu_exitAndSaveAlarm( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ExitSelected( void* userData1, void* userData2){
+uint8_t MENU_ExitSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1618,7 +1623,7 @@ uint8_t menu_ExitAndSavePid( void* userData1, void* userData2){
 }
 
 //return to PID options
-uint8_t menu_exitAndNoSavePid( void* userData1, void* userData2){
+uint8_t MENU_exitAndNoSavePid( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1692,69 +1697,80 @@ menu_status_t MENU_GetStatus(menu_T *menu){
 	return menu->cfg->status;
 }
 
-void menu_SetSecondUnits(menu_T *menu, uint8_t Secondunits){
+void MENU_SetSecondUnits(menu_T *menu, uint8_t Secondunits){
 	if(menu != NULL){
 		menu->data.seconds = Secondunits;
 	}
 }
 
-void menu_SetSecondDec(menu_T *menu, uint8_t SecondDec){
-	if(menu != NULL){
+void MENU_SetSecondDec(menu_T* menu, uint8_t SecondDec) {
+	if (menu != NULL) {
 		menu->data.seconds10 = SecondDec;
 	}
 }
 
-void menu_SetMinutesUnits(menu_T *menu, uint8_t minutesUnits){
-	if(menu != NULL){
+void MENU_SetMinutesUnits(menu_T* menu, uint8_t minutesUnits) {
+	if (menu != NULL) {
 		menu->data.minutes = minutesUnits;
 	}
 }
 
-void menu_SetMinutesDec(menu_T *menu, uint8_t minutesDec){
+void MENU_SetMinutesDec(menu_T *menu, uint8_t minutesDec){
 	if(menu != NULL){
 		menu->data.minutes10 = minutesDec;
 	}
 }
 
-void menu_SetHourUnits(menu_T *menu, uint8_t hourUnits){
+void MENU_SetHourUnits(menu_T *menu, uint8_t hourUnits){
 	if(menu != NULL){
 		menu->data.hour = hourUnits;
 	}
 }
 
-void menu_SetHourDec(menu_T *menu, uint8_t hourDec){
+void MENU_SetHourDec(menu_T *menu, uint8_t hourDec){
 	if(menu != NULL){
 		menu->data.hour10 = hourDec;
 	}
 }
 
-void menu_SetYear(menu_T *menu, uint16_t year){
+void MENU_SetYear(menu_T *menu, uint16_t year){
 	if(menu != NULL){
 		menu->data.year = year;
 	}
 }
 
-void menu_SetMonthDay(menu_T *menu, uint8_t monthDay){
+void MENU_SetMonthDay(menu_T *menu, uint8_t monthDay){
 	if(menu != NULL){
 		menu->data.monthDay = monthDay;
 	}
 }
 
-void menu_SetAmPm(menu_T *menu, const char* amPm){
+void MENU_SetAmPm(menu_T *menu, const char* amPm){
 	if((menu != NULL) && (amPm != NULL)){
 		menu->data.amPm = amPm;
 	}
 }
 
-void menu_SetWeekday(menu_T *menu, const char* weekDay){
+void MENU_SetWeekday(menu_T *menu, const char* weekDay){
 	if((menu != NULL) && (weekDay != NULL)){
 		menu->data.weekDay = weekDay;
 	}
 }
 
-void menu_SetMonth(menu_T *menu, const char* month){
+void MENU_SetMonth(menu_T *menu, const char* month){
 	if((menu != NULL) && (month != NULL)){
 		menu->data.month = month;
 	}
 }
 
+void MENU_SetDutyCycle(menu_T *menu, const uint16_t dutyCycle){
+	if((menu != NULL)){
+		menu->data.duty = dutyCycle;
+	}	
+}
+
+void MENU_SetAdcValue(menu_T *menu, const uint16_t adcVal){
+	if((menu != NULL)){
+		menu->data.adc_val = adcVal;
+	}
+}

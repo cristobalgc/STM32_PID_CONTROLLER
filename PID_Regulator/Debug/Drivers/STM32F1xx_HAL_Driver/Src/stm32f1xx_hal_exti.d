@@ -11,6 +11,7 @@ Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_exti.o: \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/CMSIS/Include/cmsis_compiler.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/CMSIS/Include/cmsis_gcc.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/CMSIS/Device/ST/STM32F1xx/Include/system_stm32f1xx.h \
+ C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc_ex.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio.h \
  C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio_ex.h \
@@ -50,6 +51,8 @@ C:/Users/Cristobal/workspace/PID_Regulator/Drivers/CMSIS/Include/cmsis_compiler.
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/CMSIS/Include/cmsis_gcc.h:
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/CMSIS/Device/ST/STM32F1xx/Include/system_stm32f1xx.h:
+
+C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h:
 
 C:/Users/Cristobal/workspace/PID_Regulator/Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc_ex.h:
 

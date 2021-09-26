@@ -39,7 +39,7 @@
 #define PID_ON (1U)
 #define PID_OFF (0U)
 
-#define PID_MAX_DUTYCYCLE_VAL (500u)
+#define PID_MAX_DUTYCYCLE_VAL (100u)
 #define PID_MIN_DUTYCYCLE_VAL (0u)
 /******************************************************************************/
 /*                Definition of exported function like macros                 */
@@ -50,21 +50,29 @@
 /******************************************************************************/
 typedef struct pid_cfg_s
 {
-	int32_t kp;
-	int32_t Ki;
-	int32_t kd;
-	uint32_t ADresolution;
-	uint32_t samplingTime;
-	uint32_t dutycycleInitVal;
-	uint32_t setPointInitVal;
+	uint16_t kpEntireCfg; 		/**< Kp parameter entire part */
+	uint16_t kpDecCfg;			/**< Kp parameter decimal part */
+	uint16_t kiEntireCfg;		/**< Ki parameter entire part */
+	uint16_t kiDecCfg;			/**< Ki parameter decimal part */
+	uint16_t kdEntireCfg;		/**< Kd parameter entire part */
+	uint16_t kdDecCfg;			/**< Kd parameter decimal part */
+	uint32_t ADresolution;		/**< Vref(uV)/adcRes: (2^10)10b or (2^12)12b */
+	uint16_t samplingTimeCfg;	/**< Sampling time in milliseconds */
+	uint16_t dutycycleInitVal;
+	uint16_t setPointInitVal; 	/**< Set point in mV */
 }pid_cfg_t;
 
 typedef struct pid_data_s
 {
-	uint32_t samplingTime2;
-	uint32_t dutycycle;
-	uint32_t setPoint;
-	uint8_t OnOffFlag;
+	double kp;				/**< Kp parameter */
+	double Ki;
+	double kd;
+	double h2; 				/**<The semi-period of sampling time. Sampling time divided by 2*/
+	double samplingTime;	/**< Sampling time in milliseconds */
+	double setPoint; 		/**< Set point in mV */
+	uint16_t adcVal;		/**< The adc value that has been read in mV after counts to mV conversion */
+	uint16_t dutycycle;
+	uint8_t OnOffFlag;		/**< Flag to power on the PID */
 }pid_data_t;
 
 typedef struct pid_s
@@ -86,8 +94,11 @@ typedef struct pid_s
 /******************************************************************************/
 
 extern void PID_init(pidc_t *pid, const pid_cfg_t *cfg);
-extern void PID_SetParameters(pidc_t *pid, float kp, float ki, float kd);
-extern void PID_SetSetPointVal(pidc_t *pid, uint32_t setPoint);
+extern void PID_SetParameters(pidc_t *pid, uint16_t kpEntire, uint16_t kpDec,
+		uint16_t kiEntire, uint16_t kiDec, uint16_t kdEntire, uint16_t KdDec);
+extern void PID_SetSetPointVal(pidc_t *pid, uint16_t setPointEntire, uint16_t SetPointDec);
 extern void PID_control(pidc_t *pid, uint32_t measuredAdc);
+extern uint16_t PID_GetDutyValule(const pidc_t *pid);
+extern uint16_t PID_GetAdcValule(const pidc_t *pid);
 
 #endif /* PID_H_ */
