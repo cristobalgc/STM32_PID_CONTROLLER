@@ -127,43 +127,9 @@ void PID_DeInit(pidc_t *pid)
 void PID_SetParameters(pidc_t *pid, uint16_t kpEntire, uint16_t kpDec,
 		uint16_t kiEntire, uint16_t kiDec, uint16_t kdEntire, uint16_t KdDec){
 
-	double resultKp = 0u;
-	double resultKi = 0u;
-	double resultKd = 0u;
-
-	if(kpDec < pid_DECIMAL){
-		resultKp = (double)kpEntire +((double)kpDec/pid_DECIMAL);
-	}else if((kpDec >= pid_DECIMAL) && (kpDec < pid_CENTIMAL)){
-		resultKp = (double)kpEntire +((double)kpDec/pid_CENTIMAL);
-	}else if((kpDec >= pid_CENTIMAL) && (kpDec < pid_10MILESIMAL)){
-		resultKp = (double)kpEntire +((double)kpDec/pid_MILESIMAL);
-	}else{
-		/* Nothing to do */
-	}
-
-	if(kiDec < pid_DECIMAL){
-		resultKi = (double)kiEntire +((double)kiDec/pid_DECIMAL);
-	}else if((kiDec >= pid_DECIMAL) && (kiDec < pid_CENTIMAL)){
-		resultKi = (double)kiEntire +((double)kiDec/pid_CENTIMAL);
-	}else if((kiDec >= pid_CENTIMAL) && (kiDec < pid_10MILESIMAL)){
-		resultKi = (double)kiEntire +((double)kiDec/pid_MILESIMAL);
-	}else{
-		/* Nothing to do */
-	}
-
-	if(KdDec < pid_DECIMAL){
-		resultKd = (double)kdEntire +((double)KdDec/pid_DECIMAL);
-	}else if((KdDec >= pid_DECIMAL) && (KdDec < pid_CENTIMAL)){
-		resultKd = (double)kdEntire +((double)KdDec/pid_CENTIMAL);
-	}else if((KdDec >= pid_CENTIMAL) && (KdDec < pid_10MILESIMAL)){
-		resultKd = (double)kdEntire +((double)KdDec/pid_MILESIMAL);
-	}else{
-		/* Nothing to do */
-	}
-	/* Update PID values */
-	pid->data.kp = resultKp;
-	pid->data.Ki = resultKi;
-	pid->data.kd = resultKd;
+	pid->data.kp = (double)kpEntire +((double)kpDec/pid_MILESIMAL);
+	pid->data.Ki = (double)kiEntire +((double)kiDec/pid_MILESIMAL);
+	pid->data.kd = (double)kdEntire +((double)KdDec/pid_MILESIMAL);
 }
 
 /*
@@ -172,21 +138,9 @@ void PID_SetParameters(pidc_t *pid, uint16_t kpEntire, uint16_t kpDec,
  * @param[in] pidc_t *pid - The Pid object.
  * @param[in] uint32_t setPoint - Proportional parameter.
  * */
-void PID_SetSetPointVal(pidc_t *pid, uint16_t setPointEntire, uint16_t SetPointDec)
-{
-	double resultSetPoint = 0u;
-
-	if(SetPointDec < pid_DECIMAL){
-		resultSetPoint = (double)setPointEntire +((double)SetPointDec/pid_DECIMAL);
-	}else if((SetPointDec >= pid_DECIMAL) && (SetPointDec < pid_CENTIMAL)){
-		resultSetPoint = (double)setPointEntire +((double)SetPointDec/pid_CENTIMAL);
-	}else if((SetPointDec >= pid_CENTIMAL) && (SetPointDec < pid_10MILESIMAL)){
-		resultSetPoint = (double)setPointEntire +((double)SetPointDec/pid_MILESIMAL);
-	}else{
-		/* Nothing to do */
-	}
+void PID_SetSetPointVal(pidc_t *pid, uint16_t setPointEntire, uint16_t SetPointDec){
 	/*Update Set Point values*/
-	pid->data.setPoint = resultSetPoint;
+	pid->data.setPoint = (double)setPointEntire +((double)SetPointDec/pid_MILESIMAL);
 }
 
 /*
@@ -204,14 +158,14 @@ void PID_control(pidc_t *pid, uint32_t measuredAdc)
 
 	if(pid->data.OnOffFlag)
 	{
-		YR = pid->data.setPoint;
-		Y1 = (measuredAdc * pid->config.ADresolution)/1000;
-		pid->data.adcVal = (uint16_t)Y1;
+		YR = pid->data.setPoint/pid_MILESIMAL;
+		Y1 = (double)(measuredAdc * pid->config.ADresolution)/1000000;//in V
+		pid->data.adcVal = (measuredAdc * pid->config.ADresolution)/pid_MILESIMAL;// in mV
 
 		Er = YR - Y1;
 		DE = (Er - E0)/pid->data.samplingTime;
 
-		if (pid->data.dutycycle != 100) //Duty cycle
+		if (pid->data.dutycycle != PID_MAX_DUTYCYCLE_VAL) //Duty cycle
 		{
 			IE = IE + (pid->data.h2 * (Er + E0));
 		}
@@ -222,25 +176,18 @@ void PID_control(pidc_t *pid, uint32_t measuredAdc)
 		U3 = pid->data.kp * pid->data.kd * DE;
 		Ur = U1 + U2 + U3 ;
 
-		if (Ur >= 5000)
-		{
+		if (Ur >= 12){
 			pid->data.dutycycle = PID_MAX_DUTYCYCLE_VAL; // Max value of duty cycle
-		}
-		else
-		{
-			if ( Ur <= 0 )
-			{
+		}else{
+			if ( Ur <= 0 ){
 				pid->data.dutycycle = PID_MIN_DUTYCYCLE_VAL; // Min value of duty cycle
-			}
-			else
-			{
-				Ur = (Ur * 500)/12 ;
+			}else{
+				Ur = (Ur * PID_MAX_DUTYCYCLE_VAL)/12 ;
 				pid->data.dutycycle = Ur;
 			}
 		}
 	}
 }
-
 /*
  * @brief: Get the applied PID value.
  * @param[in]: pidc_t *pid - The pid object.

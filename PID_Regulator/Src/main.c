@@ -49,12 +49,12 @@
 
 #define SAMPLING_TIME (2U)
 
-#define KP_ENTIRE 	(75U)
-#define KP_DECIMAL	(59U)
-#define KI_ENTIRE 	(15U)
-#define KI_DECIMAL 	(88U)
-#define KD_ENTIRE 	(74U)
-#define KD_DECIMAL 	(36U)
+#define KP_ENTIRE 	(7U)
+#define KP_DECIMAL	(0U)
+#define KI_ENTIRE 	(0U)
+#define KI_DECIMAL 	(100U)
+#define KD_ENTIRE 	(0U)
+#define KD_DECIMAL 	(10U)
 
 #define AD_RESOLLUTION 		(5000000/4096)
 #define DEFAULT_DUTY_VAL 	(500u)
@@ -171,7 +171,7 @@ static const menu_item_T menu1_cfg_options[6]={
         {0, menu_op1, menu_op1_sel, MENU_PidSelected},
 		{1, menu_op2, menu_op2_sel, MENU_HourSelected},
 		{2, menu_op3, menu_op3_sel, MENU_enterPidOptions},
-		{3, menu_op4, menu_op4_sel, menu_enterClockOptions},//
+		{3, menu_op4, menu_op4_sel, MENU_enterClockOptions},//
 		{4, menu_op5, menu_op5_sel, MENU_ChangePwmSelected},
 		{5, menu_Exit, menu_Exit_sel, MENU_ExitSelected},
 };
@@ -225,15 +225,15 @@ static const menu_cfg_T menu_defaultPid = {
 
 static const menu_item_T menu_ChangePidSettingsOptions[11]={
 		{0, submenu1_op1, submenu1_op1, NULL},
-		{1, menu_empty, submenu1_op2, menu_ChangeKpEntireSel},
-		{2, menu_empty, submenu1_op3, menu_ChangeKpDecimalSel},
-		{3, menu_empty, submenu1_op4, menu_ChangeKiEntireSel},
-		{4, menu_empty, submenu1_op5, menu_ChangeKiDecimalSel},
-		{5, menu_empty, submenu1_op6, menu_ChangeKdEntireSel},
-		{6, menu_empty, submenu1_op7, menu_ChangeKdDecimalSel},
-		{7, menu_empty, submenu1_op8, menu_ChangeSetPointEntireSel},
-		{8, menu_empty, submenu1_op9, menu_ChangeSetPointDecimalSel},
-		{9, menu_empty, submenu1_op10, menu_ExitAndSavePid},
+		{1, menu_empty, submenu1_op2, MENU_ChangeKpEntireSel},
+		{2, menu_empty, submenu1_op3, MENU_ChangeKpDecimalSel},
+		{3, menu_empty, submenu1_op4, MENU_ChangeKiEntireSel},
+		{4, menu_empty, submenu1_op5, MENU_ChangeKiDecimalSel},
+		{5, menu_empty, submenu1_op6, MENU_ChangeKdEntireSel},
+		{6, menu_empty, submenu1_op7, MENU_ChangeKdDecimalSel},
+		{7, menu_empty, submenu1_op8, MENU_ChangeSetPointEntireSel},
+		{8, menu_empty, submenu1_op9, MENU_ChangeSetPointDecimalSel},
+		{9, menu_empty, submenu1_op10, MENU_ExitAndSavePid},
 		{10, menu_empty, submenu1_op11, MENU_exitAndNoSavePid},
 };
 
@@ -252,16 +252,16 @@ static const menu_cfg_T menu_ChangePidSettings = {
 static const menu_item_T menu_ChangeDateTimeOptions[12]={
 		{0, submenu3_op1, submenu3_op1, NULL},
 		{1, menu_empty, submenu3_op2, MENU_ChangeHourFormatSel},
-		{2, menu_empty, submenu3_op6, menu_ChangeAmPmSel},
+		{2, menu_empty, submenu3_op6, MENU_ChangeAmPmSel},
 		{3, menu_empty, submenu3_op3, MENU_ChangeHourSel},
 		{4, menu_empty, submenu3_op4, MENU_ChangeMinSel},
-		{5, menu_empty, submenu3_op5, menu_ChangeSecSel},
-		{6, menu_empty, submenu3_op7, menu_ChangeWeekDaySel},
-		{7, menu_empty, submenu3_op8, menu_ChangeMonthDaySel},
-		{8, menu_empty, submenu3_op9, menu_ChangeMonthSel},
-		{9, menu_empty, submenu3_op10, menu_ChangeYearSel},
-		{10, menu_empty, submenu3_op11, menu_exitAndSaveDateTime},
-		{11, menu_empty, submenu3_op12, menu_exitAndNoSaveDateTime},
+		{5, menu_empty, submenu3_op5, MENU_ChangeSecSel},
+		{6, menu_empty, submenu3_op7, MENU_ChangeWeekDaySel},
+		{7, menu_empty, submenu3_op8, MENU_ChangeMonthDaySel},
+		{8, menu_empty, submenu3_op9, MENU_ChangeMonthSel},
+		{9, menu_empty, submenu3_op10, MENU_ChangeYearSel},
+		{10, menu_empty, submenu3_op11, MENU_exitAndSaveDateTime},
+		{11, menu_empty, submenu3_op12, MENU_exitAndNoSaveDateTime},
 };
 
 /* Screen to Change Hours*/
@@ -552,7 +552,7 @@ static const menu_cfg_T menu_changeSetPointDecimal = {
 
 static const menu_item_T menu_PidOptionsOptions[7] ={
 		{0, submenu4_title, submenu4_title, NULL},
-		{1, submenu4_op1, submenu4_op1_sel , menu_enterChangePidSelected},
+		{1, submenu4_op1, submenu4_op1_sel , MENU_enterChangePidSelected},
 		{2, submenu4_op2, submenu4_op2_sel, MENU_showPidValues},
 		{3, menu_Exit, menu_Exit_sel, MENU_pidOptionsExitToMain},
 };
@@ -572,7 +572,7 @@ static menu_cfg_T menu_PidOptions = {
 static const menu_item_T menu_clockOptionsOptions[7]=		{
 		{0, submenu5_title, submenu5_title, NULL},
 		{1, submenu5_op1, submenu5_op1_sel , MENU_enterChangeClockSelected},
-		{2, submenu5_op2, submenu5_op2_sel, menu_enterChangeAlarmSelected},
+		{2, submenu5_op2, submenu5_op2_sel, MENU_enterChangeAlarmSelected},
 		{3, menu_Exit, menu_Exit_sel, MENU_pidOptionsExitToMain},
 };
 
@@ -609,14 +609,14 @@ static const menu_cfg_T menu_PidValues = {
 
 static const menu_item_T menu_ChangeAlarmOptions[9]={
 		{0, submenu6_op1, submenu6_op1, NULL},
-		{1, menu_empty, submenu6_op2, menu_ChangeAlarmHourFormatSel},
-		{2, menu_empty, submenu6_op3, menu_ChangeAlarmAmPmSel},
-		{3, menu_empty, submenu6_op4, menu_ChangeAlarmHourSel},
-		{4, menu_empty, submenu6_op5, menu_ChangeAlarmMinSel},
-		{5, menu_empty, submenu6_op6, menu_ChangeAlarmSecSel},
-		{6, menu_empty, submenu6_op7, menu_ChangeAlarmStatusSel},
-		{7, menu_empty, submenu6_op8, menu_exitAndSaveAlarm},
-		{8, menu_empty, submenu6_op9, menu_exitAndNoSaveAlarm}
+		{1, menu_empty, submenu6_op2, MENU_ChangeAlarmHourFormatSel},
+		{2, menu_empty, submenu6_op3, MENU_ChangeAlarmAmPmSel},
+		{3, menu_empty, submenu6_op4, MENU_ChangeAlarmHourSel},
+		{4, menu_empty, submenu6_op5, MENU_ChangeAlarmMinSel},
+		{5, menu_empty, submenu6_op6, MENU_ChangeAlarmSecSel},
+		{6, menu_empty, submenu6_op7, MENU_ChangeAlarmStatusSel},
+		{7, menu_empty, submenu6_op8, MENU_exitAndSaveAlarm},
+		{8, menu_empty, submenu6_op9, MENU_exitAndNoSaveAlarm}
 };
 
 /* Screen to Change Hours*/
@@ -632,7 +632,7 @@ static const menu_cfg_T menu_ChangeAlarm = {
 };
 
 static const menu_item_T menu_changeAlarmHourAmPmOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeAlarmSelected},
 };
 
 /* Screen to Change Alarm Hour mode */
@@ -648,7 +648,7 @@ static const  menu_cfg_T menu_changeAlarmHourAmPm = {
 };
 
 static const menu_item_T menu_changeAlarmHourFormatOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeAlarmSelected},
 };
 
 /* Screen to Change Hour format */
@@ -664,7 +664,7 @@ static const menu_cfg_T menu_changeAlarmHourFormat = {
 };
 
 static const menu_item_T menu_changeAlarmHoursOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeAlarmSelected},
 };
 
 /* Screen to Change Hours */
@@ -680,7 +680,7 @@ static const menu_cfg_T menu_changeAlarmHours = {
 };
 
 static const menu_item_T menu_changeAlarmMinutesOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeAlarmSelected},
 };
 
 /* Screen to Change Hours */
@@ -696,7 +696,7 @@ static const menu_cfg_T menu_changeAlarmMinutes = {
 };
 
 static const menu_item_T menu_changeAlarmSecondsOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeAlarmSelected},
 };
 
 /* Screen to Change Hours */
@@ -712,7 +712,7 @@ static const menu_cfg_T menu_changeAlarmSeconds = {
 };
 
 static const menu_item_T menu_changeAlarmStatusOptions[1]={
-		{0, menu_empty, menu_empty, menu_exitChangeAlarmSelected},
+		{0, menu_empty, menu_empty, MENU_exitChangeAlarmSelected},
 };
 
 /* Screen to Change Hours */
@@ -1007,19 +1007,19 @@ int main(void)
 			flag_timer3 = 0;
 		}
 
-		if(menu_GetChangesDataTime(&menu)){
+		if(MENU_GetChangesDataTime(&menu)){
 			DS1302_setTime(&rtc, menu.data.dateTimeCfg.hourFormat, menu.data.dateTimeCfg.hour, menu.data.dateTimeCfg.minutes, menu.data.dateTimeCfg.seconds,
 					menu.data.dateTimeCfg.amPm, menu.data.dateTimeCfg.dayOfWeek, menu.data.dateTimeCfg.dayOfMonth, menu.data.dateTimeCfg.month, menu.data.dateTimeCfg.year);
 		}
 
-		if(menu_GetChangesPid(&menu)){
+		if(MENU_GetChangesPid(&menu)){
 			PID_SetSetPointVal(&Pid, menu.data.SetPointEntire, 0U);
 			PID_SetParameters(&Pid, menu.data.kpEntire, menu.data.kpDecimal,
 					menu.data.kiEntire, menu.data.kiDecimal,
 					menu.data.kdEntire, menu.data.kdDecimal);
 		}
 
-		if(menu_checkAlarm(&menu)){
+		if(MENU_checkAlarm(&menu)){
 
 		}
 

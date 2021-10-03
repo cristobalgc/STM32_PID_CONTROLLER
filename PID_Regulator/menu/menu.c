@@ -60,6 +60,15 @@
 #define menu_ALARM_ON 	"On"
 #define menu_ALARM_OFF  "Off"
 
+#define menu_LINE0	(0U)
+#define menu_LINE1	(1U)
+#define menu_LINE2	(2U)
+#define menu_LINE3	(3U)
+
+#define menu_DECIMAL 	(10U)
+#define menu_CENTIMAL 	(100U)
+#define menu_MILESIMAL 	(1000U)
+
 /******************************************************************************/
 /*                  Definition of local function like macros                  */
 /******************************************************************************/
@@ -88,11 +97,6 @@ static char const *menu_hourFormat[menu_HOUR_FORMAT_MAX]={MENU_24H, MENU_12H};
 /* Hour format 24H/12H */
 static char const *menu_AlarmOnOff[menu_ALARM_FORMAT_MAX]={menu_ALARM_OFF, menu_ALARM_ON};
 
-static char menu_Line0[20]={0};
-static char menu_Line1[20]={0};
-static char menu_Line2[20]={0};
-static char menu_Line3[20]={0};
-
 //extern TIM_HandleTypeDef htim2;
 /******************************************************************************/
 /*                     Definition of local constant data                      */
@@ -110,6 +114,7 @@ static char menu_Line3[20]={0};
 /*                  Declaration of local function prototypes                  */
 /******************************************************************************/
 static void menu_applyCfg(menu_T *menu, menu_status_t selcCfg);
+static void menu_decimalPartAdapter(menu_T *menu, uint8_t line ,const char* parameter, uint16_t entire, uint16_t decimal);
 static void menu_PrintDefaultPid(const menu_T *menu);
 static void menu_printDateTime(const menu_T *menu);
 static void menu_PrintMainMenu(const menu_T *menu);
@@ -184,6 +189,22 @@ static uint8_t menu_checkConstraints(const menu_cfg_T *(*cfg)[], const menu_date
 	return retVal;
 }
 
+static void menu_decimalPartAdapter(menu_T *menu, uint8_t line ,const char* parameter, uint16_t entire, uint16_t decimal){
+
+	if((line < MENU_MAX_ROWS) && (menu!= NULL)){
+		if(decimal < menu_DECIMAL){
+			snprintf(menu->data.lineContent[line], 20, "%s %d.00%d      ", parameter, entire, decimal);
+		}else if((decimal >= menu_DECIMAL) && (decimal < menu_CENTIMAL)){
+			snprintf(menu->data.lineContent[line], 20, "%s %d.0%d      ", parameter, entire, decimal);
+		}else if ((decimal >= menu_CENTIMAL) && (decimal < menu_MILESIMAL)){
+			snprintf(menu->data.lineContent[line], 20, "%s %d.%d      ", parameter, entire, decimal);
+		}else{
+			/* Nothing to do */
+		}
+	}
+
+}
+
 static uint8_t menu_searchNum(uint8_t number, uint8_t* arr){
 	uint8_t i = 0;
 	uint8_t ret = 0;
@@ -202,14 +223,14 @@ static void menu_cleanLcd(menu_T *menu)
 }
 
 static void menu_PrintDefaultPid(const menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s%d.%d", menu->data.lines[1], menu->data.SetPointEntire, menu->data.SetPointDecimal);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s%d       ", menu->data.lines[2], menu->data.adc_val);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s%d", menu->data.lines[3], menu->data.duty);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s%d.%d", menu->data.lines[menu_LINE1], menu->data.SetPointEntire, menu->data.SetPointDecimal);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s%d       ", menu->data.lines[menu_LINE2], menu->data.adc_val);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s%d            ", menu->data.lines[menu_LINE3], menu->data.duty);
 }
 
 static void menu_PrintChangePid( menu_T *menu){
@@ -223,74 +244,78 @@ static void menu_PrintChangePid( menu_T *menu){
 			{menu->data.SetPointEntire, menu->data.SetPointDecimal},
 			{menu->data.SetPointEntire, menu->data.SetPointDecimal}};
 	if(menu->data.menu_CurrentIndex-menu->cfg->menu_minOptions < 8){
-		snprintf(menu_Line2, 20, "%s %d.%d   ", menu_pidLine2[menu->data.menu_CurrentIndex-menu->cfg->menu_minOptions], menu_PidValues[menu->data.menu_CurrentIndex-menu->cfg->menu_minOptions][0],
+
+		menu_decimalPartAdapter(menu, menu_LINE2, menu_pidLine2[menu->data.menu_CurrentIndex-menu->cfg->menu_minOptions],
+				menu_PidValues[menu->data.menu_CurrentIndex-menu->cfg->menu_minOptions][0],
 				menu_PidValues[menu->data.menu_CurrentIndex-menu->cfg->menu_minOptions][1]);
-		menu->data.lines[2] = menu_Line2;
+
+		menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
 	}
 
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[1]);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 
 }
 
 static void menu_PrintPidOptions(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[1]);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintClockOptions(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[1]);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintPidValues (menu_T *menu){
-	snprintf(menu_Line0, 20, "%s %d.%d   ", menu->data.lines[0], menu->data.kpEntire, menu->data.kpDecimal);
-	snprintf(menu_Line1, 20, "%s %d.%d   ", menu->data.lines[1], menu->data.kiEntire, menu->data.kiDecimal);
-	snprintf(menu_Line2, 20, "%s %d.%d   ", menu->data.lines[2], menu->data.kdEntire, menu->data.kdDecimal);
-	snprintf(menu_Line3, 20, "%s %d.%d   ", menu->data.lines[3], menu->data.SetPointEntire, menu->data.SetPointDecimal);
 
-	menu->data.lines[0] = menu_Line0;
-	menu->data.lines[1] = menu_Line1;
-	menu->data.lines[2] = menu_Line2;
-	menu->data.lines[3] = menu_Line3;
+	menu_decimalPartAdapter(menu, menu_LINE0, menu->data.lines[menu_LINE0], menu->data.kpEntire, menu->data.kpDecimal);
+	menu_decimalPartAdapter(menu, menu_LINE1, menu->data.lines[menu_LINE1], menu->data.kiEntire, menu->data.kiDecimal);
+	menu_decimalPartAdapter(menu, menu_LINE2, menu->data.lines[menu_LINE2], menu->data.kdEntire, menu->data.kdDecimal);
+	menu_decimalPartAdapter(menu, menu_LINE3, menu->data.lines[menu_LINE3], menu->data.SetPointEntire, menu->data.SetPointDecimal);
 
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[1]);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	menu->data.lines[menu_LINE0] = menu->data.lineContent[menu_LINE0];
+	menu->data.lines[menu_LINE1] = menu->data.lineContent[menu_LINE1];
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
+
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintMainMenu(const menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[1]);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_printDateTime(const menu_T *menu){
@@ -312,33 +337,33 @@ static void menu_printDateTime(const menu_T *menu){
 }
 
 static void menu_PrintChangeAlarmSettings(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[1]);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
-	menu->data.lines[2] = menu_Line2;
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	snprintf(menu_Line3, 20, "Alarm Status: %s   ", menu_AlarmOnOff[menu->data.alarmCfg.alarmStatus]);
-	menu->data.lines[3] = menu_Line3;
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	snprintf(menu->data.lineContent[menu_LINE3], 20, "Alarm Status: %s   ", menu_AlarmOnOff[menu->data.alarmCfg.alarmStatus]);
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintChangeDateTime(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, 0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[0]);
-	LCD_setCursor(menu->cfg->lcd, 0, 1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[1]);
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
-	menu->data.lines[2] = menu_Line2;
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	snprintf(menu_Line3, 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
-	menu->data.lines[3] = menu_Line3;
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintChangeAlarmFormat(menu_T *menu){
@@ -357,10 +382,10 @@ static void menu_PrintChangeAlarmFormat(menu_T *menu){
 	}
 	hformatprevious = menu->data.alarmCfg.hourFormatAlarm;
 
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeHourFormat(menu_T *menu){
@@ -380,20 +405,20 @@ static void menu_PrintChangeHourFormat(menu_T *menu){
 	}
 	hformatprevious = menu->data.dateTimeCfg.hourFormat;
 
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeAlarmHourAmPm(menu_T *menu){
 	/* The AM/PM mode can be changed only if the hour format mode is equal to 0-12h and the hours are less than 12*/
 	if((menu->data.alarmCfg.hourFormatAlarm == menu_12H_FORMAT) && (menu->data.alarmCfg.hourAlarm < menu_12H)){
 		menu->data.alarmCfg.amPmAlarm = menu->data.menu_CurrentIndex;
-		snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
-		menu->data.lines[2] = menu_Line2;
-		LCD_setCursor(menu->cfg->lcd, 0, 2);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+		snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
+		menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 	}
 }
 
@@ -401,10 +426,10 @@ static void menu_PrintChangeHourAmPm(menu_T *menu){
 	/* The AM/PM mode can be changed only if the hour format mode is equal to 0-12h and the hours are less than 12*/
 	if((menu->data.dateTimeCfg.hourFormat == menu_12H_FORMAT) && (menu->data.dateTimeCfg.hour < menu_12H)){
 		menu->data.dateTimeCfg.amPm = menu->data.menu_CurrentIndex;
-		snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
-		menu->data.lines[2] = menu_Line2;
-		LCD_setCursor(menu->cfg->lcd, 0, 2);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+		snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
+		menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 	}
 }
 
@@ -415,11 +440,11 @@ static void menu_PrintChangeHour(menu_T *menu){
 		menu->data.dateTimeCfg.amPm = menu_AM_CFG;
 	}
 	menu->data.dateTimeCfg.hour = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
 
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeAlarmHour(menu_T *menu){
@@ -430,159 +455,151 @@ static void menu_PrintChangeAlarmHour(menu_T *menu){
 		menu->data.alarmCfg.amPmAlarm = menu_AM_CFG;
 	}
 	menu->data.alarmCfg.hourAlarm = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeMinutes(menu_T *menu){
 	menu->data.dateTimeCfg.minutes = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	snprintf(menu->data.lineContent[2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeAlarmMinutes(menu_T *menu){
 	menu->data.alarmCfg.minutesAlarm = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeSeconds(menu_T *menu){
 	menu->data.dateTimeCfg.seconds = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeAlarmSeconds(menu_T *menu){
 	menu->data.alarmCfg.secondsAlarm = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
-	menu->data.lines[2] = menu_Line2;
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
 	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeAlarmStatus(menu_T *menu){
 	menu->data.alarmCfg.alarmStatus = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line3, 20, "Alarm Status: %s   ", menu_AlarmOnOff[menu->data.alarmCfg.alarmStatus]);
-	menu->data.lines[3] = menu_Line3;
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	snprintf(menu->data.lineContent[menu_LINE3], 20, "Alarm Status: %s   ", menu_AlarmOnOff[menu->data.alarmCfg.alarmStatus]);
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintChangeWeekday(menu_T *menu){
 	menu->data.dateTimeCfg.dayOfWeek = menu->data.menu_CurrentIndex;
 	if(menu->data.menu_CurrentIndex < menu_WEEK_DAYS_MAX){
-		snprintf(menu_Line3, 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
-		menu->data.lines[3] = menu_Line3;
-		LCD_setCursor(menu->cfg->lcd, 0, 3);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+		snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
+		menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
+		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 	}
 }
 
 static void menu_PrintChangeMonthDay(menu_T *menu){
 	menu->data.dateTimeCfg.dayOfMonth = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line3, 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
-	menu->data.lines[3] = menu_Line3;
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[3];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 
 }
 
 static void menu_PrintChangeMonth(menu_T *menu){
 	menu->data.dateTimeCfg.month = menu->data.menu_CurrentIndex;
 	if(menu->data.menu_CurrentIndex < menu_MONTHS_MAX){
-		snprintf(menu_Line3, 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
-		menu->data.lines[3] = menu_Line3;
-		LCD_setCursor(menu->cfg->lcd, 0, 3);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+		snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
+		menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
+		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 	}
 }
 
 static void menu_PrintChangeYear(menu_T *menu){
 	menu->data.dateTimeCfg.year  = menu->data.menu_CurrentIndex + 2000;
-	snprintf(menu_Line3, 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
-	menu->data.lines[3] = menu_Line3;
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[3]);
+	snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintChangeKpEntire(menu_T *menu){
 	menu->data.kpEntire = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "KP:", menu->data.kpEntire,
-			menu->data.kpDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "KP:", menu->data.kpEntire, menu->data.kpDecimal);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKpDecimal(menu_T *menu){
 	menu->data.kpDecimal = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "KP:", menu->data.kpEntire,
-			menu->data.kpDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "KP:", menu->data.kpEntire, menu->data.kpDecimal);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKiEntire(menu_T *menu){
 	menu->data.kiEntire = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "KI:", menu->data.kiEntire,
-			menu->data.kiDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "KI:", menu->data.kiEntire, menu->data.kiDecimal);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKiDecimal(menu_T *menu){
 	menu->data.kiDecimal = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "KI:", menu->data.kiEntire,
-			menu->data.kiDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "KI:", menu->data.kiEntire, menu->data.kiDecimal);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKdEntire(menu_T *menu){
 	menu->data.kdEntire = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "KD:", menu->data.kdEntire,
-			menu->data.kdDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "KD:", menu->data.kdEntire, menu->data.kdDecimal);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKdDecimal(menu_T *menu){
 	menu->data.kdDecimal = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "KD:", menu->data.kdEntire,
-			menu->data.kdDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "KD:", menu->data.kdEntire, menu->data.kdDecimal);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeSetPointEntire(menu_T *menu){
 	menu->data.SetPointEntire = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "SP:", menu->data.SetPointEntire,
-			menu->data.SetPointDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "SP:", menu->data.SetPointEntire, menu->data.SetPointDecimal);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeSetPointDecimal(menu_T *menu){
 	menu->data.SetPointDecimal = menu->data.menu_CurrentIndex;
-	snprintf(menu_Line2, 20, "%s %d.%d   ", "SP:", menu->data.SetPointEntire,
-			menu->data.SetPointDecimal);
-	menu->data.lines[2] = menu_Line2;
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[2]);
+	menu_decimalPartAdapter(menu, menu_LINE2, "SP:", menu->data.SetPointEntire, menu->data.SetPointDecimal);
+	menu->data.lines[2] = menu->data.lineContent[menu_LINE2];
+	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_SetChangeDateTimeFlag(menu_T *menu, uint8_t flagVal){
@@ -711,18 +728,23 @@ static void menu_applyCfg(menu_T *menu, menu_status_t selcCfg){
 
 void MENU_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTimeCfg_t *dateTimeCfg, const menu_alarmCfg_t * alarmCfg, const menu_pidCfg_t *pidCfg){
 
+	uint16_t i,j;
 	if(menu_checkConstraints(menuCfg, dateTimeCfg, pidCfg)){
 		menu->globalCfg = menuCfg;
 		menu->cfg = menu->globalCfg[0];
 		memcpy(&menu->data.dateTimeCfg, dateTimeCfg, sizeof(menu_dateTimeCfg_t));
 		memcpy(&menu->data.alarmCfg, alarmCfg, sizeof(menu_alarmCfg_t));
 		memcpy(&menu->data.pidCfg, pidCfg, sizeof(menu_pidCfg_t));
+
+		/* Initialize LCD parameters */
+		for(i=0; i < MENU_MAX_ROWS; i++){
+			menu->data.lines[i] = NULL;
+			for(j=0; j<20; j++){
+				menu->data.lineContent[i][j] = 0U;
+			}
+		}
 		menu->data.dateTimeChangesAvailable = 0U;
 		menu->data.pidChangesAvailable = 0U;
-		menu->data.lines[0] = NULL;
-		menu->data.lines[1] = NULL;
-		menu->data.lines[2] = NULL;
-		menu->data.lines[3] = NULL;
 		menu->data.hour10 = MENU_BIN2BCD_L(menu->data.dateTimeCfg.hour);
 		menu->data.hour = MENU_BIN2BCD_H(menu->data.dateTimeCfg.hour);
 		menu->data.minutes10 = MENU_BIN2BCD_L(menu->data.dateTimeCfg.minutes);
@@ -1022,7 +1044,7 @@ uint8_t MENU_enterPidOptions( void* userData1, void* userData2){
 }
 
 //entra en las opciones del reloj
-uint8_t menu_enterClockOptions( void* userData1, void* userData2){
+uint8_t MENU_enterClockOptions( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1039,7 +1061,7 @@ uint8_t menu_enterClockOptions( void* userData1, void* userData2){
 }
 
 //retorna del menu de la alarma a las opciones del reloj
-uint8_t menu_exitAndNoSaveAlarm( void* userData1, void* userData2){
+uint8_t MENU_exitAndNoSaveAlarm( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1102,7 +1124,7 @@ uint8_t MENU_pidOptionsExitToMain( void* userData1, void* userData2){
 }
 
 
-uint8_t menu_ChangeKpEntireSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeKpEntireSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	/* When button is pressed apply the config for the menu kp entire */
@@ -1117,7 +1139,7 @@ uint8_t menu_ChangeKpEntireSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeKpDecimalSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeKpDecimalSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	/* When button is pressed apply the config for the menu_defaultPid*/
@@ -1131,7 +1153,7 @@ uint8_t menu_ChangeKpDecimalSel( void* userData1, void* userData2){
 	}
 	return ret_val;
 }
-uint8_t menu_ChangeKiEntireSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeKiEntireSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	/* When button is pressed apply the config for the menu_defaultPid*/
@@ -1145,7 +1167,7 @@ uint8_t menu_ChangeKiEntireSel( void* userData1, void* userData2){
 	}
 	return ret_val;
 }
-uint8_t menu_ChangeKiDecimalSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeKiDecimalSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	/* When button is pressed apply the config for the menu_defaultPid*/
@@ -1160,7 +1182,7 @@ uint8_t menu_ChangeKiDecimalSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeKdEntireSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeKdEntireSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1175,7 +1197,7 @@ uint8_t menu_ChangeKdEntireSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeKdDecimalSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeKdDecimalSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1190,7 +1212,7 @@ uint8_t menu_ChangeKdDecimalSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeSetPointEntireSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeSetPointEntireSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1205,7 +1227,7 @@ uint8_t menu_ChangeSetPointEntireSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeSetPointDecimalSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeSetPointDecimalSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1256,7 +1278,7 @@ uint8_t MENU_exitChangeClockSelected( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_enterChangeAlarmSelected( void* userData1, void* userData2){
+uint8_t MENU_enterChangeAlarmSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1274,7 +1296,7 @@ uint8_t menu_enterChangeAlarmSelected( void* userData1, void* userData2){
 }
 
 
-uint8_t menu_exitChangeAlarmSelected( void* userData1, void* userData2){
+uint8_t MENU_exitChangeAlarmSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1290,7 +1312,7 @@ uint8_t menu_exitChangeAlarmSelected( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_enterChangePidSelected( void* userData1, void* userData2){
+uint8_t MENU_enterChangePidSelected( void* userData1, void* userData2){
 	uint8_t ret_val = 0;
 	menu_T *menu = (menu_T*)userData1;
 	if((userData1 != NULL) ){
@@ -1346,7 +1368,7 @@ uint8_t MENU_ChangeHourFormatSel( void* userData1, void* userData2){
 }
 
 
-uint8_t menu_ChangeAmPmSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeAmPmSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1391,7 +1413,7 @@ uint8_t MENU_ChangeMinSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeSecSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeSecSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1406,7 +1428,7 @@ uint8_t menu_ChangeSecSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeWeekDaySel( void* userData1, void* userData2){
+uint8_t MENU_ChangeWeekDaySel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1421,7 +1443,7 @@ uint8_t menu_ChangeWeekDaySel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeMonthDaySel( void* userData1, void* userData2){
+uint8_t MENU_ChangeMonthDaySel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1436,7 +1458,7 @@ uint8_t menu_ChangeMonthDaySel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeMonthSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeMonthSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1451,7 +1473,7 @@ uint8_t menu_ChangeMonthSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeYearSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeYearSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1466,7 +1488,7 @@ uint8_t menu_ChangeYearSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeAlarmHourFormatSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeAlarmHourFormatSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1481,7 +1503,7 @@ uint8_t menu_ChangeAlarmHourFormatSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeAlarmAmPmSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeAlarmAmPmSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1496,7 +1518,7 @@ uint8_t menu_ChangeAlarmAmPmSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeAlarmHourSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeAlarmHourSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1511,7 +1533,7 @@ uint8_t menu_ChangeAlarmHourSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeAlarmMinSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeAlarmMinSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1526,7 +1548,7 @@ uint8_t menu_ChangeAlarmMinSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeAlarmSecSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeAlarmSecSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1541,7 +1563,7 @@ uint8_t menu_ChangeAlarmSecSel( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_ChangeAlarmStatusSel( void* userData1, void* userData2){
+uint8_t MENU_ChangeAlarmStatusSel( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1557,7 +1579,7 @@ uint8_t menu_ChangeAlarmStatusSel( void* userData1, void* userData2){
 }
 
 //retorna del menu de la alarma guardada
-uint8_t menu_exitAndSaveAlarm( void* userData1, void* userData2){
+uint8_t MENU_exitAndSaveAlarm( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1591,7 +1613,7 @@ uint8_t MENU_ExitSelected( void* userData1, void* userData2){
 }
 
 // return to clock options
-uint8_t menu_exitAndSaveDateTime( void* userData1, void* userData2){
+uint8_t MENU_exitAndSaveDateTime( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1607,7 +1629,7 @@ uint8_t menu_exitAndSaveDateTime( void* userData1, void* userData2){
 }
 
 //return to PID options
-uint8_t menu_ExitAndSavePid( void* userData1, void* userData2){
+uint8_t MENU_ExitAndSavePid( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1638,7 +1660,7 @@ uint8_t MENU_exitAndNoSavePid( void* userData1, void* userData2){
 }
 
 //return to clock options
-uint8_t menu_exitAndNoSaveDateTime( void* userData1, void* userData2){
+uint8_t MENU_exitAndNoSaveDateTime( void* userData1, void* userData2){
 	uint8_t ret_val = 0u;
 	menu_T *menu = (menu_T*)userData1;
 	if(userData1 != NULL){
@@ -1669,7 +1691,7 @@ uint8_t MENU_showPidValues( void* userData1, void* userData2){
 	return ret_val;
 }
 
-uint8_t menu_checkAlarm(menu_T *menu){
+uint8_t MENU_checkAlarm(menu_T *menu){
 	uint8_t retVal;
 	if((menu->data.alarmCfg.alarmStatus == 1u) && (menu->data.alarmCfg.hourAlarm == MENU_BCD2BIN(menu->data.hour10,menu->data.hour)) &&
 			(menu->data.alarmCfg.minutesAlarm == MENU_BCD2BIN(menu->data.minutes10, menu->data.minutes)) &&
@@ -1681,13 +1703,13 @@ uint8_t menu_checkAlarm(menu_T *menu){
 	return retVal;
 }
 
-uint8_t menu_GetChangesDataTime(menu_T *menu){
+uint8_t MENU_GetChangesDataTime(menu_T *menu){
 	uint8_t ret_val = menu->data.dateTimeChangesAvailable;
 	menu->data.dateTimeChangesAvailable = 0u;
 	return ret_val;
 }
 
-uint8_t menu_GetChangesPid(menu_T *menu){
+uint8_t MENU_GetChangesPid(menu_T *menu){
 	uint8_t ret_val = menu->data.pidChangesAvailable;
 	menu->data.pidChangesAvailable = 0u;
 	return ret_val;
