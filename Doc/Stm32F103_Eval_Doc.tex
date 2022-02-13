@@ -21,11 +21,11 @@
 \colorbox{udc}{\textcolor{white}{\bf TÍTULO}}      
 &	DISEÑO Y CONSTRUCCION DE UNA PLACA DE DESARROLLO PARA EL MICROCONTROLADOR STM32F103C8T6  \\[2cm]
 %\colorbox{udc}{\textcolor{white}{\bf GRADO}}       & Dual en Ingeñaría Eléctrica    \\[1cm]
-\colorbox{udc}{\textcolor{white}{\bf GRADO}}       & Ingenería Electrónica Industrial y Automática    \\[1cm]
-\colorbox{udc}{\textcolor{white}{\bf ASIGNATURA}}  & Nombre de la asignatura     \\[2cm]
-\colorbox{udc}{\textcolor{white}{\bf ESTUDIANTE}}  &	Garcia Camoira Cristobal  \\[2cm]
+\colorbox{udc}{\textcolor{white}{\bf AMBITO}}       & Ingenería Electrónica    \\[1cm]
+\colorbox{udc}{\textcolor{white}{\bf }}  &      \\[2cm]
+\colorbox{udc}{\textcolor{white}{\bf AUTOR}}  &	Garcia Camoira Cristobal  \\[2cm]
 %                                                  &	Apellido1 Apellido 2, Nombres  \\[2cm]
-\colorbox{udc}{\textcolor{white}{FECHA}}       &	Octubre de 2020
+\colorbox{udc}{\textcolor{white}{FECHA}}       &	Febrero de 2022
 \end{tabular}}
 \end{center}
 \normalsize
@@ -90,14 +90,14 @@ Y también las siguientes entradas:
 \begin{enumerate}
 	\item Entrada ADC
 	\item Entrada JTAG para la programación del microcontrolador
-	\item Entrada para una batería que usara el DS1302 para que no se vaya de hora
+	\item Entrada para una batería auxiliar tipo CR2032 que usara el dispositivo DS1302 para mantener la hora en caso de que se desconecte la alimentación  principal.
 \end{enumerate}
 
-Este sistema incorporara internamente un LCD de 20 caracteres x 4 lineas que se conectara a nuestro microcontrolador través del expansor de entradas/salidas IIC PCF8574, ademas incorpora un DS1302, un reloj en tiempo real el cual se ha pensado manejar con el sistema de conexión 1 wire (conexión experimental), para el cual intentaremos usar el periférico interno USART.Todo esto nos permitirá el desarrollo de drivers para el correcto manejo de los dispositivos internos que posee y aprender de ello. Ademas las salidas que tenemos disponibles nos servirán para manejar otro tipo de dispositivos, dado que tenemos salida PWM, IIC y UART y una entrada para un ADC.
+Este sistema incorporara internamente un LCD de 20 caracteres x 4 lineas que se conectara a nuestro microcontrolador través del expansor de entradas/salidas IIC PCF8574, ademas incorpora un DS1302, un reloj en tiempo real el cual se ha pensado manejar con el sistema de conexión 1 wire, para el cual se usara el periférico interno SPI en modo half duplex.Todo esto nos permitirá el desarrollo de drivers para el correcto manejo de los dispositivos internos que posee y aprender de ello. Ademas las salidas que tenemos disponibles nos servirán para manejar otro tipo de dispositivos, dado que tenemos salida PWM, IIC y UART y una entrada para un ADC.
 
 El microcontrolador que se usara en el proyecto pertenece al fabricante ST microelectronics, concretamente es el STM32F103C8T6, que incorporaremos a nuestro sistema ya en una placa de evaluación comúnmente denominada por la red de internet como "`Blue pill"', de hecho, si descargamos las librerías adecuadas se puede usar el entrono de Arduino para su programación, como si de un Arduino se tratase.
 
-La alimentación de este sistema se hará a través del conector micro USB del que dispone la placa de evaluación de ST, un cargador de teléfono móvil sera mas que suficiente, 5V 1A, el resto de componentes internos se nutrirán de la alimentación de 5V que proporciona la placa de evaluación de ST dado que usa un regulador interno para ello.
+La alimentación de este sistema se hará a través del conector micro USB del que dispone la placa de evaluación de ST, un cargador de teléfono móvil sera mas que suficiente, 5V 1A, el resto de componentes internos se nutrirán de la alimentación de 5V que proporciona la placa de evaluación de ST dado que usa un regulador interno para ello y la corriente que proporciona es capaz de nutrir de forma suficiente al resto de componentes.
 
 \vspace{0.5cm}
 
@@ -108,10 +108,10 @@ La alimentación de este sistema se hará a través del conector micro USB del q
 \begin{longtable}{|l|l|l|l|l|}
 
 %primera parte de la tabla
-\rowcolor[rgb]{ .267,  .447,  .769} \textcolor[rgb]{ 1,  1,  1}{\textbf{Category}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Quantity}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{References}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Value}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Unit Cost}} \\
+\rowcolor[rgb]{ .357,  .608,  .835} \textcolor[rgb]{ 1,  1,  1}{\textbf{Category}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Quantity}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{References}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Value}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Unit Cost}} \\
 \endfirsthead
 %Continuación de la tabla \\
-\rowcolor[rgb]{ .267,  .447,  .769} \textcolor[rgb]{ 1,  1,  1}{\textbf{Category}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Quantity}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{References}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Value}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Unit Cost}} \\
+\rowcolor[rgb]{ .357,  .608,  .835} \textcolor[rgb]{ 1,  1,  1}{\textbf{Category}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Quantity}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{References}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Value}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Unit Cost}} \\
 \endhead
 
 % ultima parte de la tabla por pagina
@@ -125,83 +125,44 @@ La alimentación de este sistema se hará a través del conector micro USB del q
 \endlastfoot
 
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Capacitors & 2      & C1,C2  & 6pF    & \euro0,35 \\
+Capacitors & 2      & C1-C2  & 6pF    & €0,35 \\
 \midrule
-Capacitors & 1      & C3     & 1.0u   & \euro0,35 \\
+Capacitors & 1      & C3     & 1.0u   & €0,35 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Capacitors & 2      & C4,C5  & 10n    & \euro0,35 \\
+Capacitors & 2      & C4-C5  & 10n    & €0,35 \\
 \midrule
-Resistors & 1      & R1     & 1k     & \euro0,15 \\
+Capacitors & 1      & C6     & 100n   & €1,00 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Resistors & 8      & R2,R3,R4,R6,R7,R8,R9,R10 & 10k    & \euro0,15 \\
+Resistors & 1      & R1     & 1k     & €0,15 \\
 \midrule
-Resistors & 1      & R5     & 100R   & \euro0,15 \\
+Resistors & 9      & R2-R10 & 10k    & €0,15 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Resistors & 1      & R11    & 100k   & \euro0,15 \\
+Integrated Circuits & 1      & U1     & STM32F103 & €3,50 \\
 \midrule
-Resistors & 1      & R12    & 4k7    & \euro0,15 \\
+Integrated Circuits & 1      & U2     & 74HC14 & €1,00 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Integrated Circuits & 1      & U1     & STM32F103 & \euro3,50 \\
+Integrated Circuits & 1      & U3     & PCF8574 & €2,50 \\
 \midrule
-Integrated Circuits & 1      & U2     & DS1302 & \euro2,50 \\
+Integrated Circuits & 1      & U6     & DS1302 & €1,00 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Integrated Circuits & 1      & U3     & PCF8574 & \euro2,50 \\
+Miscellaneous & 2      & ADC,UART & CONN-SIL3 & €0,40 \\
 \midrule
-Transistors & 2      & Q1,Q2  & 2N7002 & \euro0,50 \\
+Miscellaneous & 1      & BATT   & CONN-H2 & €0,35 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Miscellaneous & 3      & ADC,PWM,UART & CONN-SIL3 & \euro0,40 \\
+Miscellaneous & 2      & IIC,JTAG & CONN-H4 & €0,40 \\
 \midrule
-Miscellaneous & 1      & BAT1   & BATTERY & \euro2,00 \\
+Miscellaneous & 1      & L1     &        & €0,25 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Miscellaneous & 2      & IIC,JTAG & CONN-H4 & €0,40 \\
+Miscellaneous & 1      & LCD\_20X4 & CONN-H16 & €4,50 \\
 \midrule
-Miscellaneous & 1      & L1     &        & \euro0,25 \\
+Miscellaneous & 1      & PWM    & CONN-SIL5 & €0,25 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Miscellaneous & 1      & LCD\_20X4 & CONN-H16 & \euro4,00 \\
+Miscellaneous & 1      & RENC1  & ROTARY\_ENCODER1 & €2,50 \\
 \midrule
-Miscellaneous & 1      & RENC1  & ROTARY\_ENCODER1 & \euro2,50 \\
+Miscellaneous & 1      & X1     & CRYSTAL & €0,50 \\
 \midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Miscellaneous & 1      & X1     & CRYSTAL & \euro0,50 \\
+\textbf{Total} &        &        &        & €22,2 \\
 \bottomrule
-
-\end{longtable}
-\end{center}
-
-% Table generated by Excel2LaTeX from sheet 'COSTE MATERIAL DE FABRICACION'
-\begin{center}
-\begin{longtable}{|lll|}
-
-%primera parte de la tabla
-\rowcolor[rgb]{ .267,  .447,  .769} \multicolumn{1}{|l|}{\textcolor[rgb]{ 1,  1,  1}{\textbf{Category}}} & \multicolumn{1}{l|}{\textcolor[rgb]{ 1,  1,  1}{\textbf{Quantity}}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Unit Cost}} \\
-\endfirsthead
-%Continuación de la tabla \\
-\rowcolor[rgb]{ .267,  .447,  .769} \multicolumn{1}{|l|}{\textcolor[rgb]{ 1,  1,  1}{\textbf{Category}}} & \multicolumn{1}{l|}{\textcolor[rgb]{ 1,  1,  1}{\textbf{Quantity}}} & \textcolor[rgb]{ 1,  1,  1}{\textbf{Unit Cost}} \\
-\endhead
-
-% ultima parte de la tabla por pagina
-%\multicolumn{6}{c}{ \textit{Presupuesto de dispositivos}-(ver pag siguiente)}  \\ 
-\hline
-\caption[Presupuesto]{Presupuesto}
-%Continua en la siguiente pagina \\
-\endfoot
-
-% ultima parte de la tabla
-\hline
-\caption[Presupuesto]{Presupuesto }\label{TABLA2}
-\endlastfoot
-
-\midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Capacitors & 5      & 1,75 \\
-\midrule
-Resistors & 12     & 1,8 \\
-\midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Integrated Circuits & 3      & 8,5 \\
-\midrule
-Transistors & 2      & 1 \\
-\midrule
-\rowcolor[rgb]{ .851,  .882,  .949} Miscellaneous & 10     & 11,25 \\
-\midrule
-\textbf{Total} & \textbf{32} & \textbf{24,3} \\
 
 \end{longtable}
 \end{center}
@@ -225,7 +186,7 @@ El proceso de insolado no se explica en esta guía, con lo cual se explica el pr
 \label{fig:002}
 \end{figure}
 
-Teniendo como referencia la PCB por la cara delantera,  tal y como se representa en la imagen (\ref{fig:003}), los círculos señalados en rojo son las vías, es decir, los puntos que conectan ambas caras, delantera y trasera, esta conexión la haremos con unos cables rígidos que circularan de un lado al otro de la placa, soldados por ambas caras, para ello se puede usar un trozo de cable rígido pelado previamente. 
+Teniendo como referencia la PCB por la cara delantera,  tal y como se representa en la imagen (\ref{fig:003}), los círculos señalados en amarillo son las vías, es decir, los puntos que conectan ambas caras, delantera y trasera, esta conexión la haremos con unos cables rígidos que circularan de un lado al otro de la placa, soldados por ambas caras, para ello se puede usar un trozo de cable rígido pelado previamente. 
 
 \begin{figure}[H]
 \centering
@@ -234,8 +195,11 @@ Teniendo como referencia la PCB por la cara delantera,  tal y como se representa
 \label{fig:003}
 \end{figure}
 
-Una vez soldadas las vías, se recomienda ir soldando los componentes que vayan de menor a mayor volumen o tamaño para facilitar este proceso, Se recomienda empezar por soldar los que van por la parte trasera (\ref{fig:005}).
-Por la cara delantera irán soldados los componentes: R4, R5, R11, R12, Q1, Q2, RENC1 y LCD20X4. En la imagen (\ref{fig:004}) no se pueden visualizar los componentes R11, R12, Q1 y Q2, dado que están justo debajo del LCD. El resto de componentes irán soldados por la parte trasera.
+Una vez soldadas las vías, se recomienda ir soldando los componentes que vayan de menor a mayor volumen o tamaño para facilitar este proceso, se recomienda empezar por soldar los que van por la parte trasera (\ref{fig:005}).
+
+Nota: No es necesario incorporar los componentes R6, R7 y R8 al circuito, en su defecto es necesario soldar un cable en cada uno de los pads de las resistencias para unir ambas caras de la placa, como si de vías se tratasen.
+
+Por la cara delantera irán soldados los componentes: R4, R5, U2, C6, RENC1 y LCD20X4. El resto de componentes irán soldados por la parte trasera.
 
 \begin{figure}[H]
 \centering
@@ -246,7 +210,7 @@ Por la cara delantera irán soldados los componentes: R4, R5, R11, R12, Q1, Q2, 
 
 \begin{figure}[H]
 \centering
-\includegraphics[scale=0.6]{Imagenes/PCB_COMPONENTES_CARA_TRASERA.jpg}
+\includegraphics[scale=0.5]{Imagenes/PCB_COMPONENTES_CARA_TRASERA.jpg}
 \caption[Vista de los componentes de la cara trasera de la PCB]{Componentes de la cara trasera}
 \label{fig:005}
 \end{figure}
