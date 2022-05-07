@@ -32,7 +32,7 @@ Src/main.o: ../Src/main.c \
  c:\users\cristobal\workspace\pid_regulator\ds1302\ds1302.h \
  c:\users\cristobal\workspace\pid_regulator\menu\menu.h \
  c:\users\cristobal\workspace\pid_regulator\lcd\bigfont_lcdi2c.h \
- C:/Users/Cristobal/workspace/PID_Regulator/lcd/lcd_Hd44780I2C.h \
+ c:\users\cristobal\workspace\pid_regulator\lcd\lcd_Hd44780I2C.h \
  c:\users\cristobal\workspace\pid_regulator\lcd\lcd_hd44780i2c.h \
  ../Src/../pid/pid.h ../Src/../lcd/bigFont_lcdI2c.h \
  ../Src/../lcd/lcd_Hd44780I2C.h ../Src/../sdbg/sdbg.h
@@ -103,7 +103,7 @@ c:\users\cristobal\workspace\pid_regulator\menu\menu.h:
 
 c:\users\cristobal\workspace\pid_regulator\lcd\bigfont_lcdi2c.h:
 
-C:/Users/Cristobal/workspace/PID_Regulator/lcd/lcd_Hd44780I2C.h:
+c:\users\cristobal\workspace\pid_regulator\lcd\lcd_Hd44780I2C.h:
 
 c:\users\cristobal\workspace\pid_regulator\lcd\lcd_hd44780i2c.h:
 

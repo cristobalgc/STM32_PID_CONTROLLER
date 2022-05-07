@@ -1,25 +1,45 @@
-/*
- * lcd_Hd44780_I2C.h
+/******************************************************************************/
+/*                                                                            */
+/*   All rights reserved. Distribution or duplication without previous        */
+/*   written agreement of the owner prohibited.                               */
+/*                                                                            */
+/******************************************************************************/
+
+/** \file lcd_Hd44780I2C.h
  *
- *  Created on: 25 oct. 2019
- *      Author: CGC
+ * \brief Header file for lcd_Hd44780I2C component
+ *
+ * Header file for Hd44780I2C lcd manager
+ *
+ * <table border="0" cellspacing="0" cellpadding="0">
+ * <tr> <td> Author:   </td> <td> C.Garcia   </td></tr>
+ * <tr> <td> Date:     </td> <td> 04/09/2018             </td></tr>
+ * </table>
+ * \n
+ * <table border="0" cellspacing="0" cellpadding="0">
+ * <tr> <td> COMPONENT: </td> <td> Hd44780I2C    </td></tr>
+ * <tr> <td> SCOPE:     </td> <td> Public      </td></tr>
+ * <tr> <td> TARGET:    </td> <td> STM32        </td></tr>
+ * </table>
+ * \note
+ *
+ * \see
  */
 
 #ifndef LCD_HD44780I2C_H_
 #define LCD_HD44780I2C_H_
 
+/******************************************************************************/
+/*                         Project Includes                                   */
+/******************************************************************************/
 #include "stm32f1xx_hal.h"
-
+/******************************************************************************/
+/*                 Definition of exported symbolic constants                  */
+/******************************************************************************/
 //options
 //#define LCD_I2C_USE_DMA_TRANSFER
 #define LCD_I2C_USE_IT_TRANSFER
 //#define LCD_I2C_USE_BLOCK_TRANSFER
-
-// Macros to manage LCD pins
-#define LCD_REGBITSET(byte,nbit)   ((byte) |=  (1<<(nbit)))
-#define LCD_REGBITCLEAR(byte,nbit) ((byte) &= ~(1<<(nbit)))
-#define LCD_REGBITSWAP(byte,nbit)  ((byte) ^=  (1<<(nbit)))
-#define LCD_REGBITCHECK(byte,nbit) ((byte) &   (1<<(nbit)))
 
 // commands
 #define LCD_CLEARDISPLAY ((uint8_t)0x01U)
@@ -85,7 +105,19 @@
 #define WRITECMD ((uint8_t)0x00U) // Register select bit = 0
 
 #define LCD_MODE_4BITS  ((uint8_t)0x02U)
+/******************************************************************************/
+/*                Definition of exported function like macros                 */
+/******************************************************************************/
 
+// Macros to manage LCD pins
+#define LCD_REGBITSET(byte,nbit)   ((byte) |=  (1<<(nbit)))
+#define LCD_REGBITCLEAR(byte,nbit) ((byte) &= ~(1<<(nbit)))
+#define LCD_REGBITSWAP(byte,nbit)  ((byte) ^=  (1<<(nbit)))
+#define LCD_REGBITCHECK(byte,nbit) ((byte) &   (1<<(nbit)))
+
+/******************************************************************************/
+/*         Definition of exported types (typedef, enum, struct, union)        */
+/******************************************************************************/
 typedef enum lcd_error_e
 {
 	LCD_NOK,
@@ -116,6 +148,18 @@ typedef  struct LCD_s
 	LCD_cfg_t Config;
 	LCD_data_t Data;
 }LCD_t;
+
+/******************************************************************************/
+/*                    Declaration of exported variables                       */
+/******************************************************************************/
+
+/******************************************************************************/
+/*                  Declaration of exported constant data                     */
+/******************************************************************************/
+
+/******************************************************************************/
+/*               Declaration of exported function prototypes                  */
+/******************************************************************************/
 
 extern lcd_error_t LCD_init(LCD_t * lcd, const LCD_cfg_t *config);
 extern void LCD_clear(LCD_t *lcd);

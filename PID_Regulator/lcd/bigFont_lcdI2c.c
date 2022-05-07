@@ -26,11 +26,11 @@
 /******************************************************************************/
 /*                      Include headers of the component                      */
 /******************************************************************************/
+#include "lcd_Hd44780I2C.h"
 #include <bigFont_lcdI2c.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "../lcd/lcd_Hd44780I2C.h"
 /******************************************************************************/
 /*                            Include other headers                           */
 /******************************************************************************/
@@ -64,7 +64,7 @@ static const char pbf_lcd_ch6[]={31,31,31,31,31,64,64,0};//6, upper 5 lines
 static const char pbf_lcd_ch7[]={31,31,31,31,31,31,31,31,0};//7, all 7 lines 219
 
 static const char * const pbf_ch_item[] = {pbf_lcd_ch0, pbf_lcd_ch1, pbf_lcd_ch2, pbf_lcd_ch3, pbf_lcd_ch4, pbf_lcd_ch5, pbf_lcd_ch6, pbf_lcd_ch7};
-/* Todo complete the Symbols and updata the documantation */
+/* Todo complete the Symbols and update the documentation */
 static const uint8_t font_35_sym1[]={ 7,0,0,1,0,0, 7,7,0,0,0,0, 2,6,0,0,3,0, 4,6,0,0,3,6, 9,6,4,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0};
 
 static const uint8_t font_35_sym2[]={ 0,1,0,0,4,0, 7,7,0,0,0,0, 2,6,0,0,3,0, 4,6,0,0,3,6, 9,6,4,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0, 0,6,0,0,3,0};

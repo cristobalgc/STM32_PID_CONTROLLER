@@ -322,22 +322,67 @@ extern uint8_t DS1302_getSecondsUnits(ds1302_T *ds1302);
  */
 extern uint8_t DS1302_getSecondsDec(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the unit part of the minutes.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The unit part of the minutes number
+ */
 extern uint8_t DS1302_getMinutesUnits(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the decimal part of the minutes.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The decimal part of the minutes number
+ */
 extern uint8_t DS1302_getMinutesDec(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the unit part of the hour.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The decimal part of the hours number
+ */
 extern uint8_t DS1302_getHourUnits(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the decimal part of the hour.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The decimal part of the hour number
+ */
 extern uint8_t DS1302_getHourDec(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the week day.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   A pointer to the name of the day of the week
+ */
 extern const char* DS1302_geWeekDay(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the AM/PM status.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   AM/PM Status
+ */
 extern const char* DS1302_getAmPmStatus(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the day of the month.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The day of the month
+ */
 extern uint8_t DS1302_getMonthDay(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the month.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   A pointer to the name of the month.
+ */
 extern const char* DS1302_getMonth(ds1302_T *ds1302);
 
+/**
+  * @brief  Get the year.
+  * @param[in]  ds1302: The DS1302 object.
+  * @retval   The year.
+ */
 extern uint16_t DS1302_getYear(ds1302_T *ds1302);
 
 #endif /* SW_COMPONENT */

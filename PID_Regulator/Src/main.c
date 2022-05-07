@@ -91,7 +91,7 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
-I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
 
 SPI_HandleTypeDef hspi1;
 
@@ -115,7 +115,7 @@ static ds1302_T rtc;
 /* Menu object */
 static menu_T menu;
 
-static uint8_t flag_timer3=0;
+static uint8_t flag_timer1 = 0u;
 
 /*Pid configuration */
 static const pid_cfg_t pidcfg = {
@@ -155,7 +155,7 @@ static const menu_alarmCfg_t menu_alarmCfg ={
 /*Lcd configuration */
 static const LCD_cfg_t Lcd_Hd44780I2cCfg =
 {
-	&hi2c1,   /* Depending on your active I2C configuration */
+	&hi2c2,   /* Depending on your active I2C configuration */
 	LCD_COLS, /* Lcd columns */
 	LCD_ROWS, /* Lcd rows */
 	LCD_I2C_ADDRESS, /* Lcd address. Depending on your PCF8574T expander board it could change. */
@@ -774,8 +774,6 @@ static uint16_t adc_buffer[ADC_BUFFER_LEN];
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
-static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
@@ -783,6 +781,8 @@ static void MX_TIM4_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_I2C2_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -792,12 +792,6 @@ static void MX_TIM1_Init(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	menu_status_t menuStatus = MENU_DEFAULT_CFG;
-	//check if the interrupt comes from TIM4
-	if(htim->Instance == TIM4){
-		HAL_TIM_Base_Stop_IT(&htim4);
-		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_4);
-		HAL_NVIC_EnableIRQ(EXTI4_IRQn);
-	}
 
 	//check if the interrupt comes from TIM1
 	if(htim->Instance == TIM1){
@@ -806,7 +800,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		if ((menuStatus == MENU_DEFAULT_HOUR) || (menuStatus == MENU_DEFAULT_PID)){
 			MENU_Task(&menu);
 		}
-		flag_timer3 = 1u;
+		flag_timer1 = 1u;
 	}
 }
 
@@ -898,22 +892,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	//static uint32_t counter = 0u;
-
 	if (GPIO_Pin == GPIO_PIN_4){
-		//counter++;
-		HAL_NVIC_DisableIRQ(EXTI4_IRQn);
-		HAL_TIM_Base_Start_IT(&htim4);
 		if((HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_4) == GPIO_PIN_RESET)){
 			/* Falling edge */
 			MENU_keyPressed(&menu);
 			MENU_Task(&menu);
 		}else{
 			/* Rising edge */
-			//counter = 0u;
 		}
-		//LCD_setCursor(&Lcd_2,17,0);
-		//LCD_print(&Lcd_2,"%d",counter);
 	}
 }
 
@@ -948,8 +934,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
-  MX_TIM3_Init();
   MX_TIM2_Init();
   MX_DMA_Init();
   MX_USART1_UART_Init();
@@ -957,6 +941,8 @@ int main(void)
   MX_SPI1_Init();
   MX_ADC1_Init();
   MX_TIM1_Init();
+  MX_I2C2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 	(void)HAL_UART_Receive_DMA(&huart1, (uint8_t*)Rx_data, 1u);
 	LCD_init(&Lcd_2, &Lcd_Hd44780I2cCfg); /* Initialize the LCD to print "normal characters"*/
@@ -976,21 +962,20 @@ int main(void)
 		Error_Handler();
 	}
 
-	if(HAL_OK != HAL_TIM_Base_Start(&htim3)){
-		Error_Handler();
-	}
-
 	if(HAL_OK != HAL_TIM_Base_Start_IT(&htim1)){
 		Error_Handler();
 	}
 
+	if(HAL_OK != HAL_TIM_Base_Start_IT(&htim3)){
+		Error_Handler();
+	}
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		if(flag_timer3){
+		if(flag_timer1){
 			DS1302_updateDateTime(&rtc);
 
 			MENU_SetSecondUnits(&menu, DS1302_getSecondsUnits(&rtc));
@@ -1004,7 +989,7 @@ int main(void)
 			MENU_SetMonth(&menu, DS1302_getMonth(&rtc));
 			MENU_SetMonthDay(&menu,DS1302_getMonthDay(&rtc));
 			MENU_SetYear(&menu, DS1302_getYear(&rtc));
-			flag_timer3 = 0;
+			flag_timer1 = 0;
 		}
 
 		if(MENU_GetChangesDataTime(&menu)){
@@ -1120,36 +1105,36 @@ static void MX_ADC1_Init(void)
 }
 
 /**
-  * @brief I2C1 Initialization Function
+  * @brief I2C2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_I2C1_Init(void)
+static void MX_I2C2_Init(void)
 {
 
-  /* USER CODE BEGIN I2C1_Init 0 */
+  /* USER CODE BEGIN I2C2_Init 0 */
 
-  /* USER CODE END I2C1_Init 0 */
+  /* USER CODE END I2C2_Init 0 */
 
-  /* USER CODE BEGIN I2C1_Init 1 */
+  /* USER CODE BEGIN I2C2_Init 1 */
 
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 100000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C1_Init 2 */
+  /* USER CODE BEGIN I2C2_Init 2 */
 
-  /* USER CODE END I2C1_Init 2 */
+  /* USER CODE END I2C2_Init 2 */
 
 }
 
@@ -1309,7 +1294,7 @@ static void MX_TIM3_Init(void)
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 19;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -1379,7 +1364,19 @@ static void MX_TIM4_Init(void)
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
