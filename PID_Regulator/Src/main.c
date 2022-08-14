@@ -59,16 +59,18 @@
 #define AD_RESOLLUTION 		(5000000/4096)
 #define DEFAULT_DUTY_VAL 	(500u)
 #define SET_POINT_INIT_VAL 	(4217u)
+#define SET_POINT_DECIMAL 	(0u)
+
 
 #define HOUR_FORMAT	(0) // 0 = 0-24h; 1= 0-12h
-#define HOUR 		(17U)
-#define MINUTES 	(25U)
+#define HOUR 		(13U)
+#define MINUTES 	(18U)
 #define SECONDS 	(00U)
 #define AM_PM		(1U)
 #define WEEKDAY 	(1U)
-#define MONTHDAY 	(26U)
-#define MONTH 		(9U)
-#define YEAR 		(2021U)
+#define MONTHDAY 	(14U)
+#define MONTH 		(8U)
+#define YEAR 		(2022U)
 
 #define HOUR_ALARM_FORMAT	(0U) // 0 = 0-24h; 1= 0-12h
 #define HOUR_ALARM			(15U)
@@ -107,7 +109,7 @@ DMA_HandleTypeDef hdma_usart1_rx;
 /* USER CODE BEGIN PV */
 
 /* Lcd object */
-static LCD_t Lcd_2;
+static LCD_t Lcd;
 /* PID object */
 static pidc_t Pid;
 /* DS1302 object */
@@ -139,7 +141,8 @@ static const menu_pidCfg_t menuPidCfg = {
 		KI_DECIMAL,
 		KD_ENTIRE,
 		KD_DECIMAL,
-		SET_POINT_INIT_VAL
+		SET_POINT_INIT_VAL,
+		SET_POINT_DECIMAL
 };
 
 /* Clock configuration for menu */
@@ -178,7 +181,6 @@ static const menu_item_T menu1_cfg_options[6]={
 
 /* MENU screen config */
 static const menu_cfg_T menu1_cfg = {
-		&Lcd_2,
 		MENU_MAIN,
 		MENU_SCREEN_NO_FREEZE,
 		4,//max lines
@@ -188,13 +190,15 @@ static const menu_cfg_T menu1_cfg = {
 		&menu1_cfg_options[0]
 };
 
-static const menu_item_T menu_defaultHourOptions[1]={
+static const menu_item_T menu_defaultHourOptions[4]={
 		{0, menu_empty, menu_empty, MENU_defaultHourToMainSel},
+		{1, menu_empty, menu_empty, MENU_defaultHourToMainSel},
+		{2, menu_empty, menu_empty, MENU_defaultHourToMainSel},
+		{3, menu_empty, menu_empty, MENU_defaultHourToMainSel},
 };
 
 /* HOUR screen config */
 static const menu_cfg_T menu_defaultHour = {
-		&Lcd_2,
 		MENU_DEFAULT_HOUR,
 		MENU_SCREEN_NO_FREEZE,
 		4,//max lines
@@ -213,7 +217,6 @@ static const menu_item_T menu_defaultPidOptions[4]={
 
 /* Pid screen config for PID*/
 static const menu_cfg_T menu_defaultPid = {
-		&Lcd_2,
 		MENU_DEFAULT_PID,
 		MENU_SCREEN_NO_FREEZE,
 		4,
@@ -239,7 +242,6 @@ static const menu_item_T menu_ChangePidSettingsOptions[11]={
 
 /* Screen to Change PID settings*/
 static const menu_cfg_T menu_ChangePidSettings = {
-		&Lcd_2,
 		MENU_PID_SETTINGS,
 		MENU_SCREEN_NO_FREEZE,
 		1, // Used Lines to print the menu
@@ -266,7 +268,6 @@ static const menu_item_T menu_ChangeDateTimeOptions[12]={
 
 /* Screen to Change Hours*/
 static const menu_cfg_T menu_ChangeDateTime = {
-		&Lcd_2,
 		MENU_CLOCK_SETTINGS,
 		MENU_SCREEN_NO_FREEZE,
 		1, // Used Lines to print the menu
@@ -282,7 +283,6 @@ static const menu_item_T menu_changeHourFormatOptions[1]={
 
 /* Screen to Change Hour format */
 static const menu_cfg_T menu_changeHourFormat = {
-		&Lcd_2,
 		MENU_CHANGE_HOUR_FORMAT,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -298,7 +298,6 @@ static const menu_item_T menu_changeHourAmPmOptions[1]={
 
 /* Screen to Change Hour mode */
 static const  menu_cfg_T menu_changeHourAmPm = {
-		&Lcd_2,
 		MENU_CHANGE_HOUR_AM_PM,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -314,7 +313,6 @@ static const menu_item_T menu_changeHoursOptions[1]={
 
 /* Screen to Change Hours */
 static const menu_cfg_T menu_changeHours = {
-		&Lcd_2,
 		MENU_CHANGE_HOUR,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -330,7 +328,6 @@ static const menu_item_T menu_changeMinutesOptions[1]={
 
 /* Screen to Change Minutes */
 static const menu_cfg_T menu_changeMinutes = {
-		&Lcd_2,
 		MENU_CHANGE_MINUTES,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -348,7 +345,6 @@ static const menu_item_T menu_changeSecondsOptions[1]={
 
 /* Screen to Change Seconds */
 static const menu_cfg_T menu_changeSeconds = {
-		&Lcd_2,
 		MENU_CHANGE_SECONDS,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -364,7 +360,6 @@ static const menu_item_T menu_changeWeekDayOptions[1]={
 
 /* Screen to Change the day of the week */
 static const menu_cfg_T menu_changeWeekDay = {
-		&Lcd_2,
 		MENU_CHANGE_WEEKDAY,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -381,7 +376,6 @@ static const menu_item_T menu_changeMonthDayOptions[1]= {
 
 /* Screen to Change the day of the current month*/
 static const menu_cfg_T menu_changeMonthDay = {
-		&Lcd_2,
 		MENU_CHANGE_MONTHDAY,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -397,7 +391,6 @@ static const menu_item_T menu_changeMonthOptions[1]={
 
 /* Screen to Change the day of the current month*/
 static const menu_cfg_T menu_changeMonth = {
-		&Lcd_2,
 		MENU_CHANGE_MONTH,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -413,13 +406,12 @@ static const menu_item_T menu_changeYearOptions[1]={
 
 /* Screen to Change the day of the current month*/
 static const menu_cfg_T menu_changeYear = {
-		&Lcd_2,
 		MENU_CHANGE_YEAR,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
-		21, //min menu start option
+		999,// number of menu items
+		0, //min menu start option
 		&menu_changeYearOptions[0]
 };
 
@@ -429,12 +421,11 @@ static const menu_item_T menu_changeKpEntireOptions[1]={
 
 /* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKpEntire = {
-		&Lcd_2,
 		MENU_CHANGE_KP_ENTIRE,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		9999,// number of menu items
 		0, //min menu start option
 		&menu_changeKpEntireOptions[0]
 };
@@ -445,12 +436,11 @@ static const menu_item_T menu_changeKpDecimalOptions[1]={
 
 /* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKpDecimal = {
-		&Lcd_2,
 		MENU_CHANGE_KP_DECIMAL,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		999,// number of menu items
 		0, //min menu start option
 		&menu_changeKpDecimalOptions[0]
 };
@@ -461,12 +451,11 @@ static const menu_item_T menu_changeKiEntireOptions[1]={
 
 /* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKiEntire = {
-		&Lcd_2,
 		MENU_CHANGE_KI_ENTIRE,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		9999,// number of menu items
 		0, //min menu start option
 		&menu_changeKiEntireOptions[0]
 };
@@ -477,12 +466,11 @@ static const menu_item_T menu_changeKiDecimalOptions[1]={
 
 /* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static menu_cfg_T menu_changeKiDecimal = {
-		&Lcd_2,
 		MENU_CHANGE_KI_DECIMAL,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		999,// number of menu items
 		0, //min menu start option
 		&menu_changeKiDecimalOptions[0]
 };
@@ -493,12 +481,11 @@ static const menu_item_T menu_changeKdEntireOptions[1]=		{
 
 /* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKdEntire = {
-		&Lcd_2,
 		MENU_CHANGE_KD_ENTIRE,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		9999,// number of menu items
 		0, //min menu start option
 		&menu_changeKdEntireOptions[0]
 };
@@ -509,12 +496,11 @@ static const menu_item_T menu_changeKdDecimalOptions[1]=		{
 
 /* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeKdDecimal = {
-		&Lcd_2,
 		MENU_CHANGE_KD_DECIMAL,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		999,// number of menu items
 		0, //min menu start option
 		&menu_changeKdDecimalOptions[0]
 };
@@ -524,12 +510,11 @@ static const menu_item_T menu_changeSetPointEntireOptions[1]={
 };
 /* Screen to Change the Entire part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeSetPointEntire = {
-		&Lcd_2,
 		MENU_CHANGE_SET_POINT_ENTIRE,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		9999,// number of menu items
 		0, //min menu start option
 		&menu_changeSetPointEntireOptions[0]
 };
@@ -540,12 +525,11 @@ static const menu_item_T menu_changeSetPointDecimalOptions[1]={
 
 /* Screen to Change the decimal part of the KP_ENTIRE parameter*/
 static const menu_cfg_T menu_changeSetPointDecimal = {
-		&Lcd_2,
 		MENU_CHANGE_SET_POINT_DECIMAL,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
 		1, // Print the entire menu rotating on this line
-		100,// number of menu items
+		999,// number of menu items
 		0, //min menu start option
 		&menu_changeSetPointDecimalOptions[0]
 };
@@ -559,7 +543,6 @@ static const menu_item_T menu_PidOptionsOptions[7] ={
 
 /* Screen to show all PID options */
 static menu_cfg_T menu_PidOptions = {
-		&Lcd_2,
 		MENU_PID_OPTIONS,
 		MENU_SCREEN_NO_FREEZE,
 		3, // Used Lines to print the menu
@@ -578,7 +561,6 @@ static const menu_item_T menu_clockOptionsOptions[7]=		{
 
 /* Screen to show all PID options */
 static menu_cfg_T menu_clockOptions = {
-		&Lcd_2,
 		MENU_CLOCK_OPTIONS,
 		MENU_SCREEN_NO_FREEZE,
 		3, // Used Lines to print the menu
@@ -597,7 +579,6 @@ static const menu_item_T menu_PidValuesOptions[4]={
 
 /* Screen to show all PID options */
 static const menu_cfg_T menu_PidValues = {
-		&Lcd_2,
 		MENU_PID_VALUES,
 		MENU_SCREEN_NO_FREEZE,
 		4, // Used Lines to print the menu
@@ -621,7 +602,6 @@ static const menu_item_T menu_ChangeAlarmOptions[9]={
 
 /* Screen to Change Hours*/
 static const menu_cfg_T menu_ChangeAlarm = {
-		&Lcd_2,
 		MENU_ALARM_SETTINGS,
 		MENU_SCREEN_NO_FREEZE,
 		1, // Used Lines to print the menu
@@ -637,7 +617,6 @@ static const menu_item_T menu_changeAlarmHourAmPmOptions[1]={
 
 /* Screen to Change Alarm Hour mode */
 static const  menu_cfg_T menu_changeAlarmHourAmPm = {
-		&Lcd_2,
 		MENU_CHANGE_ALARM_HOUR_AM_PM,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -653,7 +632,6 @@ static const menu_item_T menu_changeAlarmHourFormatOptions[1]={
 
 /* Screen to Change Hour format */
 static const menu_cfg_T menu_changeAlarmHourFormat = {
-		&Lcd_2,
 		MENU_CHANGE_ALARM_HOUR_FORMAT,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -669,7 +647,6 @@ static const menu_item_T menu_changeAlarmHoursOptions[1]={
 
 /* Screen to Change Hours */
 static const menu_cfg_T menu_changeAlarmHours = {
-		&Lcd_2,
 		MENU_CHANGE_ALARM_HOUR,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -685,7 +662,6 @@ static const menu_item_T menu_changeAlarmMinutesOptions[1]={
 
 /* Screen to Change Hours */
 static const menu_cfg_T menu_changeAlarmMinutes = {
-		&Lcd_2,
 		MENU_CHANGE_ALARM_MINUTES,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -701,7 +677,6 @@ static const menu_item_T menu_changeAlarmSecondsOptions[1]={
 
 /* Screen to Change Hours */
 static const menu_cfg_T menu_changeAlarmSeconds = {
-		&Lcd_2,
 		MENU_CHANGE_ALARM_SECONDS,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -717,7 +692,6 @@ static const menu_item_T menu_changeAlarmStatusOptions[1]={
 
 /* Screen to Change Hours */
 static const menu_cfg_T menu_changeAlarmStatus = {
-		&Lcd_2,
 		MENU_CHANGE_ALARM_STATUS,
 		MENU_SCREEN_FREEZE,
 		1, // Used Lines to print the menu
@@ -789,6 +763,34 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+static void print_normal_Menu(void){
+	LCD_setCursor(&Lcd, 0, 0);
+	LCD_print(&Lcd, "%s", menu.data.lines[0]);
+	LCD_setCursor(&Lcd, 0, 1);
+	LCD_print(&Lcd, "%s", menu.data.lines[1]);
+	LCD_setCursor(&Lcd, 0, 2);
+	LCD_print(&Lcd, "%s", menu.data.lines[2]);
+	LCD_setCursor(&Lcd, 0, 3);
+	LCD_print(&Lcd, "%s", menu.data.lines[3]);
+}
+
+
+static void print_datetime_big_format(void){
+	BIGFONT_printChar(&Lcd,':', 7, 0);
+	BIGFONT_printNumber(&Lcd, menu.data.hour10, 0, 0);
+	BIGFONT_printNumber(&Lcd, menu.data.hour, 4, 0);
+	BIGFONT_printNumber(&Lcd, menu.data.minutes10, 10, 0);
+	BIGFONT_printNumber(&Lcd, menu.data.minutes, 14, 0);
+	LCD_setCursor(&Lcd, 18, 0);
+	LCD_print(&Lcd,"%d", menu.data.seconds10);
+	LCD_setCursor(&Lcd, 19, 0);
+	LCD_print(&Lcd,"%d", menu.data.seconds);
+	LCD_setCursor(&Lcd, 0, 3);
+	LCD_print(&Lcd, "%s", menu.data.lines[3]);
+}
+
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	menu_status_t menuStatus = MENU_DEFAULT_CFG;
@@ -797,8 +799,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if(htim->Instance == TIM1){
 		menuStatus = MENU_GetStatus(&menu);
 		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		if ((menuStatus == MENU_DEFAULT_HOUR) || (menuStatus == MENU_DEFAULT_PID)){
+		if ((menuStatus == MENU_DEFAULT_PID)){
 			MENU_Task(&menu);
+			print_normal_Menu();
+		}else if((menuStatus == MENU_DEFAULT_HOUR)){
+			//LCD_clear(&Lcd_2);
+			MENU_Task(&menu);
+			print_datetime_big_format();
+		}else{
+			/* Nothing to do */
 		}
 		flag_timer1 = 1u;
 	}
@@ -826,6 +835,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
 			if (( menuStatus!= MENU_DEFAULT_HOUR) && (menuStatus != MENU_DEFAULT_PID)){
 				MENU_Task(&menu);
+				print_normal_Menu();
 			}
 		}
 	}
@@ -897,6 +907,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			/* Falling edge */
 			MENU_keyPressed(&menu);
 			MENU_Task(&menu);
+			print_normal_Menu();
 		}else{
 			/* Rising edge */
 		}
@@ -945,9 +956,9 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 	(void)HAL_UART_Receive_DMA(&huart1, (uint8_t*)Rx_data, 1u);
-	LCD_init(&Lcd_2, &Lcd_Hd44780I2cCfg); /* Initialize the LCD to print "normal characters"*/
-	BIGFONT_init(&Lcd_2); /*Initialize Big font characters */
-	LCD_setBacklight(&Lcd_2, 1u); /* Turn on the Backlight */
+	LCD_init(&Lcd, &Lcd_Hd44780I2cCfg); /* Initialize the LCD to print "normal characters"*/
+	BIGFONT_init(&Lcd); /*Initialize Big font characters */
+	LCD_setBacklight(&Lcd, 1u); /* Turn on the Backlight */
 	DS1302_Init(&rtc, &ds1302_config);
 	DS1302_setTime(&rtc, HOUR_FORMAT, HOUR, MINUTES, SECONDS, AM_PM, WEEKDAY, MONTHDAY, MONTH, YEAR);
 	SDBG_print(&huart1,"\r\nHello World!");
@@ -1267,6 +1278,7 @@ static void MX_TIM2_Init(void)
   }
   /* USER CODE BEGIN TIM2_Init 2 */
   HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_1);
+  htim2.Instance->CNT = 5000;
   /* USER CODE END TIM2_Init 2 */
 
 }

@@ -87,7 +87,7 @@
  * @brief Initialize Pid parameters
  *
  * @param[in] pidc_t *pid - The pid object.
- * @param[in] pid_cfg_t *cfg - The configutation parameters
+ * @param[in] pid_cfg_t *cfg - The configuration parameters
  * */
 void PID_init(pidc_t *pid, const pid_cfg_t *cfg)
 {
@@ -107,7 +107,7 @@ void PID_init(pidc_t *pid, const pid_cfg_t *cfg)
 }
 
 /*
- * @brief Initialize Pid parameters
+ * @brief Switch off the PID execution
  *
  * @param[in] pidc_t *pid - The pid object.
  * */
@@ -120,9 +120,12 @@ void PID_DeInit(pidc_t *pid)
  * @brief To change PID parameters on runtime
  *
  * @param[in] pidc_t *pid - The Pid object.
- * @param[in] uint32_t kp - Proportional parameter.
- * @param[in] uint32_t ki - Integral parameter.
- * @param[in] uint32_t kd - Derivative parameter.
+ * @param[in] uint32_t kpEntire - The entire part of the proportional parameter.
+ * @param[in] uint32_t kpDec - The decimal part of the Proportional parameter.
+ * @param[in] uint32_t kiEntire - The entire part of the integral parameter.
+ * @param[in] uint32_t kiDec - The decimal part of theiIntegral parameter.
+ * @param[in] uint32_t kdEntire - The entire part of the derivative parameter.
+ * @param[in] uint32_t KdDec - The decimal part of the derivative parameter.
  * */
 void PID_SetParameters(pidc_t *pid, uint16_t kpEntire, uint16_t kpDec,
 		uint16_t kiEntire, uint16_t kiDec, uint16_t kdEntire, uint16_t KdDec){
@@ -133,10 +136,11 @@ void PID_SetParameters(pidc_t *pid, uint16_t kpEntire, uint16_t kpDec,
 }
 
 /*
- * @brief Change set pont parameter on runtime
+ * @brief Change set point parameter on runtime
  *
  * @param[in] pidc_t *pid - The Pid object.
- * @param[in] uint32_t setPoint - Proportional parameter.
+ * @param[in] uint16_t setPointEntire - Entire part of the Set point parameter.
+ * @param[in] uint16_t SetPointDec - Decimal part of the Set point parameter.
  * */
 void PID_SetSetPointVal(pidc_t *pid, uint16_t setPointEntire, uint16_t SetPointDec){
 	/*Update Set Point values*/
@@ -144,11 +148,10 @@ void PID_SetSetPointVal(pidc_t *pid, uint16_t setPointEntire, uint16_t SetPointD
 }
 
 /*
- * @brief: This task must be executed after each adc measurement
+ * @brief: This task must be executed after each adc conversion
  * or at least at double of ADC sampling frequency.
  *
  * @param[in]: pidc_t *pid - The pid object.
- * @param[in]: uint32_t setPoint - Set point in millivolts.
  * @param[in]: uint32_t measuredAdc - Measured ADC value (in ADC counts).
  *  */
 void PID_control(pidc_t *pid, uint32_t measuredAdc)

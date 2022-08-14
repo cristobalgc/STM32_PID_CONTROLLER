@@ -68,6 +68,7 @@
 #define menu_DECIMAL 	(10U)
 #define menu_CENTIMAL 	(100U)
 #define menu_MILESIMAL 	(1000U)
+#define menu_MILENIUM	(2000U)
 
 /******************************************************************************/
 /*                  Definition of local function like macros                  */
@@ -115,8 +116,8 @@ static char const *menu_AlarmOnOff[menu_ALARM_FORMAT_MAX]={menu_ALARM_OFF, menu_
 /******************************************************************************/
 static void menu_applyCfg(menu_T *menu, menu_status_t selcCfg);
 static void menu_decimalPartAdapter(menu_T *menu, uint8_t line ,const char* parameter, uint16_t entire, uint16_t decimal);
-static void menu_PrintDefaultPid(const menu_T *menu);
-static void menu_printDateTime(const menu_T *menu);
+static void menu_PrintDefaultPid(menu_T *menu);
+static void menu_printDateTime(menu_T *menu);
 static void menu_PrintMainMenu(const menu_T *menu);
 static void menu_PrintChangePid( menu_T *menu);
 static void menu_PrintChangeDateTime(menu_T *menu);
@@ -219,18 +220,21 @@ static uint8_t menu_searchNum(uint8_t number, uint8_t* arr){
 
 static void menu_cleanLcd(menu_T *menu)
 {
-	LCD_clear(menu->cfg->lcd);
+	memcpy(menu->data.lineContent[menu_LINE0], "                    ",20);
+	memcpy(menu->data.lineContent[menu_LINE1], "                    ",20);
+	memcpy(menu->data.lineContent[menu_LINE2], "                    ",20);
+	memcpy(menu->data.lineContent[menu_LINE3], "                    ",20);
 }
 
-static void menu_PrintDefaultPid(const menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s%d.%d", menu->data.lines[menu_LINE1], menu->data.SetPointEntire, menu->data.SetPointDecimal);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s%d       ", menu->data.lines[menu_LINE2], menu->data.adc_val);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s%d            ", menu->data.lines[menu_LINE3], menu->data.duty);
+static void menu_PrintDefaultPid(menu_T *menu){
+	snprintf(menu->data.lineContent[menu_LINE0], 20, "%s", menu->data.lines[menu_LINE0]);
+	menu->data.lines[menu_LINE0] = menu->data.lineContent[menu_LINE0];
+	snprintf(menu->data.lineContent[menu_LINE1], 20, "%s%d.%d", menu->data.lines[menu_LINE1], menu->data.SetPointEntire, menu->data.SetPointDecimal);
+	menu->data.lines[menu_LINE1] = menu->data.lineContent[menu_LINE1];
+	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s%d       ", menu->data.lines[menu_LINE2], menu->data.adc_val);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
+	snprintf(menu->data.lineContent[menu_LINE3], 20, "%s%d            ", menu->data.lines[menu_LINE3], menu->data.duty);
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
 }
 
 static void menu_PrintChangePid( menu_T *menu){
@@ -251,119 +255,51 @@ static void menu_PrintChangePid( menu_T *menu){
 
 		menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
 	}
-
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
-
 }
 
 static void menu_PrintPidOptions(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
+
 }
 
 static void menu_PrintClockOptions(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
+
 }
 
 static void menu_PrintPidValues (menu_T *menu){
-
 	menu_decimalPartAdapter(menu, menu_LINE0, menu->data.lines[menu_LINE0], menu->data.kpEntire, menu->data.kpDecimal);
 	menu_decimalPartAdapter(menu, menu_LINE1, menu->data.lines[menu_LINE1], menu->data.kiEntire, menu->data.kiDecimal);
 	menu_decimalPartAdapter(menu, menu_LINE2, menu->data.lines[menu_LINE2], menu->data.kdEntire, menu->data.kdDecimal);
 	menu_decimalPartAdapter(menu, menu_LINE3, menu->data.lines[menu_LINE3], menu->data.SetPointEntire, menu->data.SetPointDecimal);
-
 	menu->data.lines[menu_LINE0] = menu->data.lineContent[menu_LINE0];
 	menu->data.lines[menu_LINE1] = menu->data.lineContent[menu_LINE1];
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
 	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
 
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintMainMenu(const menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
+
 }
 
-static void menu_printDateTime(const menu_T *menu){
-	BIGFONT_printChar(menu->cfg->lcd,':', 7, 0);
-
-	BIGFONT_printNumber(menu->cfg->lcd, menu->data.hour10, 0, 0);
-	BIGFONT_printNumber(menu->cfg->lcd, menu->data.hour, 4, 0);
-	BIGFONT_printNumber(menu->cfg->lcd, menu->data.minutes10, 10, 0);
-	BIGFONT_printNumber(menu->cfg->lcd, menu->data.minutes, 14, 0);
-
-	LCD_setCursor(menu->cfg->lcd, 18, 0);
-	LCD_print(menu->cfg->lcd,"%d", menu->data.seconds10);
-	LCD_setCursor(menu->cfg->lcd, 19, 0);
-	LCD_print(menu->cfg->lcd,"%d", menu->data.seconds);
-
-	LCD_setCursor(menu->cfg->lcd, 0, 3);
-	LCD_print(menu->cfg->lcd,"- %s/%d/%s/%d -", menu->data.weekDay, menu->data.monthDay, menu->data.month,
-			menu->data.year);
+static void menu_printDateTime(menu_T *menu){
+	snprintf(menu->data.lineContent[menu_LINE3], 20, "- %s/%d/%s/%d -", menu->data.weekDay, menu->data.monthDay, menu->data.month, menu->data.year);
+	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
 }
 
 static void menu_PrintChangeAlarmSettings(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
 	snprintf(menu->data.lineContent[menu_LINE3], 20, "Alarm Status: %s   ", menu_AlarmOnOff[menu->data.alarmCfg.alarmStatus]);
 	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintChangeDateTime(menu_T *menu){
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE0);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE0]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE1);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE1]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
+
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
 	snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
 	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
+
 }
 
 static void menu_PrintChangeAlarmFormat(menu_T *menu){
@@ -384,8 +320,7 @@ static void menu_PrintChangeAlarmFormat(menu_T *menu){
 
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+
 }
 
 static void menu_PrintChangeHourFormat(menu_T *menu){
@@ -407,8 +342,7 @@ static void menu_PrintChangeHourFormat(menu_T *menu){
 
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+
 }
 
 static void menu_PrintChangeAlarmHourAmPm(menu_T *menu){
@@ -417,8 +351,7 @@ static void menu_PrintChangeAlarmHourAmPm(menu_T *menu){
 		menu->data.alarmCfg.amPmAlarm = menu->data.menu_CurrentIndex;
 		snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
 		menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+
 	}
 }
 
@@ -428,8 +361,7 @@ static void menu_PrintChangeHourAmPm(menu_T *menu){
 		menu->data.dateTimeCfg.amPm = menu->data.menu_CurrentIndex;
 		snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
 		menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+
 	}
 }
 
@@ -443,8 +375,7 @@ static void menu_PrintChangeHour(menu_T *menu){
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
 
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+
 }
 
 static void menu_PrintChangeAlarmHour(menu_T *menu){
@@ -457,48 +388,38 @@ static void menu_PrintChangeAlarmHour(menu_T *menu){
 	menu->data.alarmCfg.hourAlarm = menu->data.menu_CurrentIndex;
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+
 }
 
 static void menu_PrintChangeMinutes(menu_T *menu){
 	menu->data.dateTimeCfg.minutes = menu->data.menu_CurrentIndex;
 	snprintf(menu->data.lineContent[2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+
 }
 
 static void menu_PrintChangeAlarmMinutes(menu_T *menu){
 	menu->data.alarmCfg.minutesAlarm = menu->data.menu_CurrentIndex;
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeSeconds(menu_T *menu){
 	menu->data.dateTimeCfg.seconds = menu->data.menu_CurrentIndex;
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.dateTimeCfg.hourFormat], menu_AMPM[menu->data.dateTimeCfg.amPm], menu->data.dateTimeCfg.hour, menu->data.dateTimeCfg.minutes, menu->data.dateTimeCfg.seconds);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeAlarmSeconds(menu_T *menu){
 	menu->data.alarmCfg.secondsAlarm = menu->data.menu_CurrentIndex;
 	snprintf(menu->data.lineContent[menu_LINE2], 20, "%s/%s   %d:%d:%d   ", menu_hourFormat[menu->data.alarmCfg.hourFormatAlarm], menu_AMPM[menu->data.alarmCfg.amPmAlarm], menu->data.alarmCfg.hourAlarm, menu->data.alarmCfg.minutesAlarm, menu->data.alarmCfg.secondsAlarm);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, 2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeAlarmStatus(menu_T *menu){
 	menu->data.alarmCfg.alarmStatus = menu->data.menu_CurrentIndex;
 	snprintf(menu->data.lineContent[menu_LINE3], 20, "Alarm Status: %s   ", menu_AlarmOnOff[menu->data.alarmCfg.alarmStatus]);
 	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintChangeWeekday(menu_T *menu){
@@ -506,8 +427,6 @@ static void menu_PrintChangeWeekday(menu_T *menu){
 	if(menu->data.menu_CurrentIndex < menu_WEEK_DAYS_MAX){
 		snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
 		menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
-		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 	}
 }
 
@@ -515,9 +434,6 @@ static void menu_PrintChangeMonthDay(menu_T *menu){
 	menu->data.dateTimeCfg.dayOfMonth = menu->data.menu_CurrentIndex;
 	snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
 	menu->data.lines[menu_LINE3] = menu->data.lineContent[3];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
-
 }
 
 static void menu_PrintChangeMonth(menu_T *menu){
@@ -525,81 +441,61 @@ static void menu_PrintChangeMonth(menu_T *menu){
 	if(menu->data.menu_CurrentIndex < menu_MONTHS_MAX){
 		snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
 		menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
-		LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-		LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 	}
 }
 
 static void menu_PrintChangeYear(menu_T *menu){
-	menu->data.dateTimeCfg.year  = menu->data.menu_CurrentIndex + 2000;
+	menu->data.dateTimeCfg.year = menu->data.menu_CurrentIndex + menu_MILENIUM;
 	snprintf(menu->data.lineContent[menu_LINE3], 20, "  %s/%d/%s/%d   ", menu_days[menu->data.dateTimeCfg.dayOfWeek], menu->data.dateTimeCfg.dayOfMonth, menu_months[menu->data.dateTimeCfg.month], menu->data.dateTimeCfg.year);
 	menu->data.lines[menu_LINE3] = menu->data.lineContent[menu_LINE3];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE3);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE3]);
 }
 
 static void menu_PrintChangeKpEntire(menu_T *menu){
 	menu->data.kpEntire = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "KP:", menu->data.kpEntire, menu->data.kpDecimal);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKpDecimal(menu_T *menu){
 	menu->data.kpDecimal = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "KP:", menu->data.kpEntire, menu->data.kpDecimal);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKiEntire(menu_T *menu){
 	menu->data.kiEntire = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "KI:", menu->data.kiEntire, menu->data.kiDecimal);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKiDecimal(menu_T *menu){
 	menu->data.kiDecimal = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "KI:", menu->data.kiEntire, menu->data.kiDecimal);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKdEntire(menu_T *menu){
 	menu->data.kdEntire = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "KD:", menu->data.kdEntire, menu->data.kdDecimal);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeKdDecimal(menu_T *menu){
 	menu->data.kdDecimal = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "KD:", menu->data.kdEntire, menu->data.kdDecimal);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeSetPointEntire(menu_T *menu){
 	menu->data.SetPointEntire = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "SP:", menu->data.SetPointEntire, menu->data.SetPointDecimal);
 	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
 }
 
 static void menu_PrintChangeSetPointDecimal(menu_T *menu){
 	menu->data.SetPointDecimal = menu->data.menu_CurrentIndex;
 	menu_decimalPartAdapter(menu, menu_LINE2, "SP:", menu->data.SetPointEntire, menu->data.SetPointDecimal);
-	menu->data.lines[2] = menu->data.lineContent[menu_LINE2];
-	LCD_setCursor(menu->cfg->lcd, 0, menu_LINE2);
-	LCD_print(menu->cfg->lcd, "%s", menu->data.lines[menu_LINE2]);
+	menu->data.lines[menu_LINE2] = menu->data.lineContent[menu_LINE2];
 }
 
 static void menu_SetChangeDateTimeFlag(menu_T *menu, uint8_t flagVal){
@@ -762,8 +658,8 @@ void MENU_Init(menu_T *menu, const menu_cfg_T *(*menuCfg)[], const menu_dateTime
 		menu->data.kiDecimal = menu->data.pidCfg.kiCfgDec;
 		menu->data.kdEntire = menu->data.pidCfg.kdCfgEntire;
 		menu->data.kdDecimal = menu->data.pidCfg.kdCfgDec;
-		menu->data.SetPointEntire = menu->data.pidCfg.setPointCfg;
-		menu->data.SetPointDecimal = 0U; //Todo
+		menu->data.SetPointEntire = menu->data.pidCfg.setPointCfgEntire;
+		menu->data.SetPointDecimal = menu->data.pidCfg.setPointCfgDec;
 		menu->data.duty = 0U; //Todo
 		menu->data.menu_CurrentIndex = menu->cfg->menu_minOptions;
 		menu->data.menu_PreviousIndexLevel1 = menu->globalCfg[3]->menu_minOptions;//MENU_MAIN
@@ -876,7 +772,7 @@ void MENU_Task(menu_T * menu){
 			reject_lines[2] = 2;
 			reject_lines[3] = 3;
 		}
-		//rellena con los titulos de las 4 primeras lineas las lineas vacias
+//		rellena con los titulos de las 4 primeras lineas las lineas vacias
 		for(line=0; line < MENU_MAX_ROWS; line++){
 			if(!menu_searchNum(line, reject_lines)){
 				menu->data.lines[line] = menu->cfg->menu_items[line].msg_noSelected;
@@ -1480,7 +1376,7 @@ uint8_t MENU_ChangeYearSel( void* userData1, void* userData2){
 		/* When button is pressed apply the config for the menu 1*/
 		menu_applyCfg((menu_T*)userData1, MENU_CHANGE_YEAR);
 		menu->data.menu_PreviousIndexLevel4 = menu->data.menu_CurrentIndex;
-		menu->data.menu_CurrentIndex = menu->data.dateTimeCfg.year;
+		menu->data.menu_CurrentIndex = menu->data.dateTimeCfg.year - menu_MILENIUM;
 		ret_val = 1u;
 	} else {
 		ret_val = 0u;

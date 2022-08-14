@@ -58,20 +58,20 @@ typedef struct pid_cfg_s
 	uint16_t kdDecCfg;			/**< Kd parameter decimal part */
 	uint32_t ADresolution;		/**< Vref(uV)/adcRes: (2^10)10b or (2^12)12b */
 	uint16_t samplingTimeCfg;	/**< Sampling time in milliseconds */
-	uint16_t dutycycleInitVal;
-	uint16_t setPointInitVal; 	/**< Set point in mV */
+	uint16_t dutycycleInitVal; 	/**< The initial duty cycle value */
+	uint16_t setPointInitVal; 	/**< The initial set point value in mV */
 }pid_cfg_t;
 
 typedef struct pid_data_s
 {
 	double kp;				/**< Kp parameter */
-	double Ki;
-	double kd;
+	double Ki;				/**< Ki parameter */
+	double kd;				/**< Kd parameter */
 	double h2; 				/**<The semi-period of sampling time. Sampling time divided by 2*/
 	double samplingTime;	/**< Sampling time in milliseconds */
 	double setPoint; 		/**< Set point in mV */
 	uint16_t adcVal;		/**< The adc value that has been read in mV after counts to mV conversion */
-	uint16_t dutycycle;
+	uint16_t dutycycle; 	/**< The duty cycle value */
 	uint8_t OnOffFlag;		/**< Flag to power on the PID */
 }pid_data_t;
 

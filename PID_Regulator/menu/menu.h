@@ -35,9 +35,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "../lcd/bigFont_lcdI2c.h"
-#include "../lcd/lcd_Hd44780I2C.h"
-
 /******************************************************************************/
 /*                 Definition of exported symbolic constants                  */
 /******************************************************************************/
@@ -257,34 +254,34 @@ typedef struct menu_alarmCfg_s{
 }menu_alarmCfg_t;
 
 typedef struct menu_pidCfg_s{
-	uint16_t kpCfgEntire;		/**< Kp parameter entire part */
-	uint16_t kpCfgDec;			/**< Kp parameter decimal part */
-	uint16_t kiCfgEntire;		/**< Ki parameter entire part */
-	uint16_t kiCfgDec;			/**< Ki parameter decimal part */
-	uint16_t kdCfgEntire;		/**< Kd parameter entire part*/
-	uint16_t kdCfgDec;			/**< Kd parameter decimal part*/
-	uint16_t setPointCfg;		/**< Set point */
+	uint16_t kpCfgEntire;			/**< Kp parameter entire part */
+	uint16_t kpCfgDec;				/**< Kp parameter decimal part */
+	uint16_t kiCfgEntire;			/**< Ki parameter entire part */
+	uint16_t kiCfgDec;				/**< Ki parameter decimal part */
+	uint16_t kdCfgEntire;			/**< Kd parameter entire part*/
+	uint16_t kdCfgDec;				/**< Kd parameter decimal part*/
+	uint16_t setPointCfgEntire;		/**< Set point parameter entire part*/
+	uint16_t setPointCfgDec;		/**< Set point parameter decimal part*/
 }menu_pidCfg_t;
 
 typedef struct menu_cfg_s {
-	LCD_t *lcd;
 	menu_status_t status;
 	menu_mode_T freezeScreen;
 	uint8_t MenuMaxLines;// maximo numero de lineas que tiene el menu
 	uint8_t MenuLinestart;// linea a partir de la cual se imprimira el menu
-	uint8_t menu_maxOptions;// Maxima posicion que puede alcanzar el menu o numero maximo de posibilidades en el menu
-	uint8_t menu_minOptions;// posicion donde empieza el menu o numero minimo de posibilidades del menu
+	uint16_t menu_maxOptions;// Maxima posicion que puede alcanzar el menu o numero maximo de posibilidades en el menu
+	uint16_t menu_minOptions;// posicion donde empieza el menu o numero minimo de posibilidades del menu
 	const menu_item_T *menu_items;
 }menu_cfg_T;
 
 typedef struct menu_data_s{
-	menu_dateTimeCfg_t dateTimeCfg; /**< Contains the configuration parameters for the date & time configuration*/
-	menu_alarmCfg_t alarmCfg;		/**< Contains the configuration parameters for the alarm configuration */
-	menu_pidCfg_t pidCfg;			/**< Contains the configuration parameters for the pid configuration */
-	uint8_t dateTimeChangesAvailable;
-	uint8_t pidChangesAvailable;
-	const char *lines[MENU_MAX_ROWS];
-	char lineContent[MENU_MAX_ROWS][20];
+	menu_dateTimeCfg_t dateTimeCfg; 		/**< Contains the date & time configuration parameters */
+	menu_alarmCfg_t alarmCfg;				/**< Contains the alarm configuration parameters */
+	menu_pidCfg_t pidCfg;					/**< Contains the PID configuration parameters */
+	uint8_t dateTimeChangesAvailable;		/**< Flag that indicates if there is any change on Date time configuration (1) otherwise (0) */
+	uint8_t pidChangesAvailable;			/**< Flag that indicates if there is any change on PID configuration (1) otherwise (0) */
+	const char *lines[MENU_MAX_ROWS];		/**< Number of LCD lines */
+	char lineContent[MENU_MAX_ROWS][20]; 	/**< Data content of each LCD line */
 	uint8_t hour10;
 	uint8_t hour;
 	uint8_t minutes10;
